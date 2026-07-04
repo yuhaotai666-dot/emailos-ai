@@ -20,6 +20,7 @@ from ..models import (
     ErrorCase,
     Meeting,
     MemoryRule,
+    SubAgent,
     SuccessPattern,
     TriageResult,
     UserProfile,
@@ -125,6 +126,7 @@ class LocalStore:
             data_dir / "triage.json", TriageResult, id_field="email_id"
         )
         self.profile = JsonCollection(data_dir / "profile.json", UserProfile)
+        self.sub_agents = JsonCollection(data_dir / "sub_agents.json", SubAgent)
 
 
 _store: Optional[LocalStore] = None

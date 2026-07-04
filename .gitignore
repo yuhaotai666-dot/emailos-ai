@@ -21,3 +21,4 @@ backend/app/data/triage.json
 .idea/
 .vscode/
 backend/app/data/profile.json
+backend/app/data/sub_agents.json

@@ -16,6 +16,7 @@ from .config import get_settings
 from .repositories import get_store
 from .routes import (
     agent,
+    chat,
     contacts,
     drafts,
     emails,
@@ -67,6 +68,7 @@ app.include_router(people.router)
 app.include_router(profile.router)
 app.include_router(meetings.router)
 app.include_router(todos.router)
+app.include_router(chat.router)
 
 
 @app.on_event("startup")

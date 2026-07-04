@@ -26,6 +26,8 @@ class Settings(BaseSettings):
     # LLM
     anthropic_api_key: str = ""
     openai_api_key: str = ""
+    # Custom OpenAI-compatible endpoint (proxy/relay). Empty = official API.
+    openai_base_url: str = ""
     llm_provider: str = "anthropic"  # "anthropic" | "openai" | "mock"
     llm_model: str = "claude-sonnet-4-6"
 

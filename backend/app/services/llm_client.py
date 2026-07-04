@@ -88,12 +88,17 @@ class LLMClient:
             if self.settings.llm_provider == "openai":
                 from langchain_openai import ChatOpenAI
 
+                kwargs = {}
+                if self.settings.openai_base_url:
+                    # OpenAI-compatible proxy/relay endpoint.
+                    kwargs["base_url"] = self.settings.openai_base_url
                 return ChatOpenAI(
                     model=self.settings.llm_model,
                     api_key=self.settings.openai_api_key,
                     max_tokens=2048,
                     timeout=60,
                     callbacks=[self._cost_handler],
+                    **kwargs,
                 )
 
             from langchain_anthropic import ChatAnthropic
