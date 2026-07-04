@@ -20,3 +20,4 @@ backend/app/data/triage.json
 .DS_Store
 .idea/
 .vscode/
+backend/app/data/profile.json

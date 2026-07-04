@@ -14,7 +14,18 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import get_settings
 from .repositories import get_store
-from .routes import agent, contacts, drafts, emails, health, memory
+from .routes import (
+    agent,
+    contacts,
+    drafts,
+    emails,
+    health,
+    meetings,
+    memory,
+    people,
+    profile,
+    todos,
+)
 
 settings = get_settings()
 
@@ -52,6 +63,10 @@ app.include_router(drafts.router)
 app.include_router(emails.router)
 app.include_router(contacts.router)
 app.include_router(memory.router)
+app.include_router(people.router)
+app.include_router(profile.router)
+app.include_router(meetings.router)
+app.include_router(todos.router)
 
 
 @app.on_event("startup")

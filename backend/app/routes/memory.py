@@ -6,6 +6,7 @@ from ..models import (
     ErrorCase,
     LearnFromEditRequest,
     LearnFromEditResult,
+    MemoryProfile,
     MemoryRule,
     SuccessPattern,
 )
@@ -16,6 +17,12 @@ router = APIRouter(prefix="/api/memory", tags=["memory"])
 
 def _svc() -> MemoryService:
     return MemoryService()
+
+
+@router.get("/profile", response_model=MemoryProfile)
+def get_memory_profile() -> MemoryProfile:
+    """Grouped what-the-assistant-knows view for the memory page."""
+    return _svc().memory_profile()
 
 
 @router.get("/rules", response_model=list[MemoryRule])

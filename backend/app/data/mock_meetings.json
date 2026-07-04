@@ -1,0 +1,52 @@
+[
+  {
+    "id": "mt-001",
+    "title": "Intro call — Emma Wilson",
+    "starts_at": "2026-07-06T14:00:00+00:00",
+    "attendees": ["Emma Wilson", "Theo"],
+    "prep": "Emma asked for a quick call this week. Likely agenda: partnership fit and next steps. Review her email thread before joining.",
+    "questions": [
+      "What outcome does Emma want from a partnership?",
+      "What's her timeline and who else is involved on her side?"
+    ],
+    "action_items": ["Share pilot structure overview", "Agree on a follow-up date"],
+    "follow_up": null,
+    "source": "mock"
+  },
+  {
+    "id": "mt-002",
+    "title": "Video review sync — Aisha Rahman",
+    "starts_at": "2026-07-07T10:30:00+00:00",
+    "attendees": ["Aisha Rahman", "Theo"],
+    "prep": "Aisha is waiting on feedback for the latest cut. Watch it before the call and prepare timestamped notes.",
+    "questions": [
+      "Are the product mentions accurate in the current cut?",
+      "Does the publish window still work for both sides?"
+    ],
+    "action_items": ["Send timestamped feedback", "Confirm publish date"],
+    "follow_up": {
+      "recipients": ["aisha@example.com", "theo@superintern.ai"],
+      "subject": "Recap & next steps — video review",
+      "summary": "We reviewed the current cut together. The intro lands well; two timestamps need a tighter product mention. Aisha will revise and Theo will confirm the publish window after the team's review.",
+      "todos": [
+        { "owner": "Aisha", "task": "Revise the two flagged timestamps", "due": "This week" },
+        { "owner": "Theo", "task": "Confirm publish window after team review", "due": "Fri" }
+      ]
+    },
+    "source": "mock"
+  },
+  {
+    "id": "mt-003",
+    "title": "Collaboration structure — Noah Bennett",
+    "starts_at": "2026-07-08T16:00:00+00:00",
+    "attendees": ["Noah Bennett", "Theo"],
+    "prep": "Noah asked how collaborations are structured. Walk through the pilot model: smaller base fee plus revenue share, room to grow.",
+    "questions": [
+      "What content formats is Noah planning?",
+      "Is he open to a revenue-share pilot before a larger flat fee?"
+    ],
+    "action_items": ["Outline pilot terms in writing", "Set a decision date"],
+    "follow_up": null,
+    "source": "mock"
+  }
+]

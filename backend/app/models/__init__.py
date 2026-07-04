@@ -7,13 +7,17 @@ from .agent_run import (
 )
 from .draft import ConstraintCheck, Draft
 from .email import Email
+from .meeting import Meeting, MeetingFollowUp, MeetingTodo
+from .profile import UserProfile
 from .enums import Category, DraftStatus, Priority
 from .evaluation import Critique, Evaluation
 from .memory import (
     ErrorCase,
     LearnFromEditRequest,
     LearnFromEditResult,
+    MemoryProfile,
     MemoryRule,
+    MemorySection,
     SuccessPattern,
 )
 from .triage import TriageResult
@@ -32,9 +36,15 @@ __all__ = [
     "FollowUp",
     "LearnFromEditRequest",
     "LearnFromEditResult",
+    "Meeting",
+    "MeetingFollowUp",
+    "MeetingTodo",
+    "MemoryProfile",
     "MemoryRule",
+    "MemorySection",
     "Priority",
     "SuccessPattern",
     "TriageResult",
     "TriageRunResponse",
+    "UserProfile",
 ]

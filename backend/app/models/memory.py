@@ -19,6 +19,22 @@ class MemoryRule(BaseModel):
     example_bad: str = ""
     created_from: str = "manual"
     confidence: float = Field(default=0.7, ge=0.0, le=1.0)
+    # Optional grouping for the memory-profile view (e.g. "Payment rules").
+    # Empty = inferred from the situation text by keyword.
+    section: str = ""
+
+
+class MemorySection(BaseModel):
+    """One titled group of memory items for the frontend memory page."""
+
+    title: str
+    items: list[str] = Field(default_factory=list)
+
+
+class MemoryProfile(BaseModel):
+    """The grouped what-the-assistant-knows view shown on the memory page."""
+
+    sections: list[MemorySection] = Field(default_factory=list)
 
 
 class ErrorCase(BaseModel):

@@ -11,17 +11,46 @@ from typing import Optional
 
 from pydantic import BaseModel
 
+from collections import Counter, defaultdict
+
 from ..models import (
     ErrorCase,
     LearnFromEditRequest,
     LearnFromEditResult,
+    MemoryProfile,
     MemoryRule,
+    MemorySection,
     SuccessPattern,
 )
 from ..repositories import LocalStore, get_store
 from ._chains import SYS_USER_PROMPT
-from ._theo import FORBIDDEN_PHRASES
+from ._theo import FORBIDDEN_PHRASES, PREFERRED_PHRASES
 from .llm_client import LLMClient, get_llm_client
+
+# ---- memory-profile grouping ------------------------------------------------
+# Static sections describe Theo himself; dynamic sections come from MemoryRules.
+_STYLE_ITEMS = [
+    "Concise, polite, direct, professional",
+    "No emojis, no exaggerated sales language",
+    "Keeps replies under ~180 words",
+    "When declining, keeps the door open for future collaboration",
+]
+
+_BUSINESS_ITEMS = [
+    "SuperIntern — growth and partnerships",
+    "Creator partnerships, influencer outreach, and collaboration negotiations",
+    "Owns payments questions, tracking links, credits, and product access",
+    "Early pilot stage with a limited budget",
+]
+
+# situation-keyword -> section title (checked in order; first hit wins)
+_SECTION_RULES: list[tuple[tuple[str, ...], str]] = [
+    (("payment", "invoice", "payout", "paid"), "Payment rules"),
+    (("access", "credit", "login", "log in", "dashboard", "code"), "Product access rules"),
+    (("rate", "pricing", "price", "partnership", "collab", "creator", "influencer"),
+     "Partnership preferences"),
+]
+_FALLBACK_SECTION = "Reply preferences"
 
 
 class _LearnOut(BaseModel):
@@ -57,6 +86,57 @@ class MemoryService:
 
     def add_success(self, pattern: SuccessPattern) -> SuccessPattern:
         return self.store.success_patterns.add(pattern)
+
+    # ---- grouped profile view ----
+    def memory_profile(self) -> MemoryProfile:
+        """Group everything the assistant knows into the memory-page sections."""
+        # Common phrases: the static voice list + phrases proven in successes.
+        phrases = list(PREFERRED_PHRASES)
+        for s in self.list_success():
+            for p in s.reusable_phrases:
+                if p not in phrases:
+                    phrases.append(p)
+
+        # Dynamic rule sections (explicit rule.section wins over keyword inference).
+        grouped: dict[str, list[str]] = defaultdict(list)
+        for rule in self.list_rules():
+            grouped[rule.section or _infer_section(rule.situation)].append(rule.preference)
+        for err in self.list_errors():
+            grouped[_infer_section(err.situation)].append(f"Avoid: {err.lesson}")
+
+        # Important contacts, derived from who Theo actually emails.
+        contacts = self._important_contacts()
+
+        sections = [
+            MemorySection(title="Communication style", items=_STYLE_ITEMS),
+            MemorySection(title="Common phrases", items=phrases),
+            MemorySection(title="Business context", items=_BUSINESS_ITEMS),
+        ]
+        if contacts:
+            sections.append(MemorySection(title="Important contacts", items=contacts))
+        for title in ("Partnership preferences", "Payment rules", "Product access rules",
+                      _FALLBACK_SECTION):
+            if grouped.get(title):
+                sections.append(MemorySection(title=title, items=grouped[title]))
+        return MemoryProfile(sections=sections)
+
+    def _important_contacts(self, k: int = 4) -> list[str]:
+        triage_by_email = {t.email_id: t for t in self.store.triage.list()}
+        by_sender: dict[str, list] = defaultdict(list)
+        for e in self.store.emails.list():
+            by_sender[e.sender_email].append(e)
+
+        rows = []
+        for sender_email, group in by_sender.items():
+            group.sort(key=lambda e: e.received_at, reverse=True)
+            latest = group[0]
+            cats = Counter(
+                triage_by_email[e.id].category.value for e in group if e.id in triage_by_email
+            )
+            label = cats.most_common(1)[0][0] if cats else "Contact"
+            rows.append((latest.received_at, f"{latest.sender_name} — {label}"))
+        rows.sort(reverse=True)
+        return [line for _, line in rows[:k]]
 
     # ---- learning ----
     def learn_from_edit(self, req: LearnFromEditRequest) -> LearnFromEditResult:
@@ -116,6 +196,14 @@ class MemoryService:
             possible_error_case=error,
             possible_success_pattern=None,
         )
+
+
+def _infer_section(situation: str) -> str:
+    low = situation.lower()
+    for keywords, title in _SECTION_RULES:
+        if any(k in low for k in keywords):
+            return title
+    return _FALLBACK_SECTION
 
 
 def _mock_learn(req: LearnFromEditRequest) -> LearnFromEditResult:

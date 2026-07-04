@@ -18,9 +18,11 @@ from ..models import (
     Draft,
     Email,
     ErrorCase,
+    Meeting,
     MemoryRule,
     SuccessPattern,
     TriageResult,
+    UserProfile,
 )
 from .base import Collection, T
 
@@ -113,6 +115,7 @@ class LocalStore:
         self.success_patterns = JsonCollection(
             data_dir / "success_patterns.json", SuccessPattern
         )
+        self.meetings = JsonCollection(data_dir / "mock_meetings.json", Meeting)
 
         # Runtime collections (created on demand, gitignored).
         self.drafts = JsonCollection(data_dir / "drafts.json", Draft)
@@ -121,6 +124,7 @@ class LocalStore:
         self.triage = JsonCollection(
             data_dir / "triage.json", TriageResult, id_field="email_id"
         )
+        self.profile = JsonCollection(data_dir / "profile.json", UserProfile)
 
 
 _store: Optional[LocalStore] = None
