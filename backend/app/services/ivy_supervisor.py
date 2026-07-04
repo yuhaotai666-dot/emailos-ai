@@ -123,15 +123,23 @@ class IvySupervisor:
             tools=tools_by_names(agent.tools),
             prompt=(
                 f"{agent.system_prompt}\n\n"
-                "You are a specialist working for Ivy (Theo's assistant). Complete the "
-                "task fully and reply with your final result only. You cannot send "
-                "emails — if asked to, produce draft text instead."
+                "You are a specialist working for Ivy (Theo's assistant). Work "
+                "efficiently: call each tool AT MOST twice, then give your final "
+                "answer — do not keep re-calling tools to polish. If a tool result "
+                "is good enough, stop and report it. You cannot send emails — if "
+                "asked to, produce draft text instead."
             ),
         )
-        out = worker.invoke(
-            {"messages": [HumanMessage(content=task)]},
-            config={"recursion_limit": 25},
-        )
+        try:
+            out = worker.invoke(
+                {"messages": [HumanMessage(content=task)]},
+                config={"recursion_limit": 25},
+            )
+        except Exception as exc:  # tool loop / recursion / provider error
+            return (
+                f"(specialist '{agent.name}' stopped early: {type(exc).__name__}) "
+                "Partial or no result — consider retrying with a narrower task."
+            )
         final = out["messages"][-1]
         return final.content if isinstance(final.content, str) else str(final.content)
 
@@ -144,13 +152,20 @@ class IvySupervisor:
             "1. For trivial chit-chat or a single quick lookup, just answer (you may use "
             "your own tools directly).\n"
             "2. For any substantive task: first call list_specialists. If one matches the "
-            "task, delegate to it. If none matches, create_specialist first (give it a "
-            "clear role, instructions, and only the tools it needs), then delegate.\n"
+            "task, delegate to it. If none matches, create_specialist first, then delegate. "
+            "When creating a specialist, grant ALL tools it needs end-to-end — a specialist "
+            "that acts on emails needs list_recent_emails AND the acting tool, not just one.\n"
             "3. REVIEW every specialist result before answering: check it actually answers "
             "the task, is accurate, and contains no promises or commitments Theo hasn't "
-            "made. If inadequate, delegate again with concrete feedback (max 2 retries).\n"
+            "made. If inadequate, delegate again with concrete feedback (max 2 retries). "
+            "NEVER create a duplicate specialist for a role that already exists — if a "
+            "specialist keeps failing, stop, and tell the user what went wrong instead.\n"
             "4. Answer the user concisely in the user's language, integrating the reviewed result.\n\n"
             f"Shared toolbox available to you and specialists:\n{toolbox_catalog()}\n\n"
+            "Drafting hint: for reply-drafting tasks give the specialist "
+            "list_recent_emails + create_reply_draft. create_reply_draft already runs "
+            "the full quality loop internally — one call (with the user's tone/length "
+            "wishes as `instruction`) is enough; report its output back.\n\n"
             "Hard rule: neither you nor any specialist can send email — there is no such "
             "tool. Drafts are always reviewed by Theo before anything leaves."
         )
@@ -173,10 +188,21 @@ class IvySupervisor:
         history = self._histories.setdefault(conversation_id, [])
         history.append(HumanMessage(content=message))
 
-        out = ivy.invoke(
-            {"messages": list(history)},
-            config={"recursion_limit": 40},
-        )
+        try:
+            out = ivy.invoke(
+                {"messages": list(history)},
+                config={"recursion_limit": 40},
+            )
+        except Exception as exc:  # never 500 the chat endpoint
+            history.pop()  # drop the failed turn so retries start clean
+            return ChatResponse(
+                reply=(
+                    "这个任务我这次没跑完（" + type(exc).__name__ + "）。"
+                    "可以换个更具体的说法再试一次，比如指明哪封邮件或哪件事。"
+                ),
+                events=self._events,
+                conversation_id=conversation_id,
+            )
         new_messages = out["messages"][len(history):]
         # Surface direct tool usage (delegation events are added by the tools).
         for m in new_messages:

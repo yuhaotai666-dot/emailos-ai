@@ -126,6 +126,72 @@ def query_memory() -> str:
 
 
 @tool
+def create_reply_draft(email_ref: str, instruction: str = "") -> str:
+    """Draft a reply to one email and put it in Theo's review queue.
+
+    Runs the full quality loop (draft -> critique -> score -> constraint check
+    -> rewrite if needed). The draft is queued as pending_review — it is NOT
+    sent; Theo reviews and approves everything.
+
+    Args:
+        email_ref: the email's id, OR the sender's name, OR a subject keyword
+            (fuzzy matched, e.g. "maya" or "payment").
+        instruction: optional extra guidance, e.g. "keep it to three sentences".
+    """
+    from ..models import Critique, DraftStatus
+    from .workflow_engine import WorkflowEngine
+
+    store = get_store()
+    email = _find_email(store, email_ref)
+    if email is None:
+        options = "; ".join(
+            f"[{e.id}] {e.sender_name} — {e.subject}" for e in store.emails.list()[:10]
+        )
+        return f"No email matches '{email_ref}'. Available: {options}"
+    email_id = email.id
+
+    engine = WorkflowEngine(store=store)
+    triage = store.triage.get(email_id) or engine.classifier.classify(email)
+    store.triage.update(triage)
+
+    existing = next((d for d in store.drafts.list() if d.email_id == email_id), None)
+    if existing and instruction:
+        # Refine the existing draft with the extra guidance.
+        context = engine.retriever.retrieve(email, triage)
+        draft = engine.generator.rewrite(
+            email, triage, context, existing, Critique(rewrite_instructions=instruction), None
+        )
+        draft.id = existing.id  # keep the queue reference stable
+        draft.status = DraftStatus.PENDING_REVIEW
+        engine.recompute(draft)
+        store.drafts.update(draft)
+    else:
+        result = engine.graph.invoke({"email": email, "max_retries": engine.settings.max_draft_retries})
+        draft = result.get("best")
+        if draft is None:
+            return "This email doesn't need a reply according to triage."
+        if instruction:
+            context = engine.retriever.retrieve(email, triage)
+            draft = engine.generator.rewrite(
+                email, triage, context, draft, Critique(rewrite_instructions=instruction), None
+            )
+            draft.status = DraftStatus.PENDING_REVIEW
+            engine.recompute(draft)
+        if existing:
+            draft.id = existing.id
+            store.drafts.update(draft)
+        else:
+            store.drafts.add(draft)
+
+    score = draft.evaluation.overall_score if draft.evaluation else "?"
+    return (
+        f"Draft queued for review (id {draft.id}, score {score}, "
+        f"constraints_passed={draft.constraints_passed}). It will NOT be sent "
+        f"until Theo approves. Draft:\n{draft.draft_body}"
+    )
+
+
+@tool
 def get_daily_brief() -> str:
     """The latest daily brief: top priorities, who needs a reply, drafts ready."""
     store = get_store()
@@ -135,6 +201,25 @@ def get_daily_brief() -> str:
     b = sorted(briefs, key=lambda b: b.generated_at)[-1]
     top = "; ".join(t.summary for t in b.top_priority[:3])
     return f"{b.summary} Top priorities: {top}. Suggested: {'; '.join(b.suggested_actions[:3])}"
+
+
+def _find_email(store, ref: str):
+    """Resolve an email by id, sender name, sender address, or subject keyword."""
+    ref_low = ref.strip().lower()
+    emails = store.emails.list()
+    for e in emails:
+        if e.id == ref or e.id == ref_low:
+            return e
+    # Newest first so "maya" hits her latest email.
+    emails.sort(key=lambda e: e.received_at, reverse=True)
+    for e in emails:
+        blob = f"{e.sender_name} {e.sender_email}".lower()
+        if ref_low in blob:
+            return e
+    for e in emails:
+        if ref_low in e.subject.lower() or ref_low in e.body_preview.lower():
+            return e
+    return None
 
 
 # ------------------------------------------------------------------ registry
@@ -147,6 +232,7 @@ TOOLBOX: dict[str, Callable] = {
     "list_meetings": list_meetings,
     "query_memory": query_memory,
     "get_daily_brief": get_daily_brief,
+    "create_reply_draft": create_reply_draft,
 }
 
 
