@@ -1,0 +1,29 @@
+[
+  {
+    "id": "mr-001",
+    "situation": "Rejecting or negotiating a creator's pricing/rate",
+    "preference": "Avoid harsh wording. Use budget-stage framing (early pilot, limited budget) and keep future collaboration open. Offer a smaller base fee plus revenue share where possible.",
+    "example_good": "To be transparent, at this stage we're running an early pilot with a limited budget, so a fixed fee at that level is above what we can commit to right now.",
+    "example_bad": "We cannot afford this rate.",
+    "created_from": "seed",
+    "confidence": 0.9
+  },
+  {
+    "id": "mr-002",
+    "situation": "Creator asks about payment status or timing",
+    "preference": "Reference the internal team review / approval process and reassure. Do not commit an exact payment date or amount unless it has been confirmed.",
+    "example_good": "The team is reviewing this now and I'll confirm the exact timing as soon as the approval is complete.",
+    "example_bad": "Your payment will be sent on Friday.",
+    "created_from": "seed",
+    "confidence": 0.85
+  },
+  {
+    "id": "mr-003",
+    "situation": "Creator reports a product access or credits problem",
+    "preference": "Ask for a screenshot or suggest checking the web dashboard directly, then reassure that you'll sort it quickly.",
+    "example_good": "Could you send a quick screenshot? In the meantime it's worth checking the web dashboard directly.",
+    "example_bad": "That's not possible on our end.",
+    "created_from": "seed",
+    "confidence": 0.85
+  }
+]

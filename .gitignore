@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# Env / secrets
+.env
+backend/.env
+
+# Runtime data (seed files are committed; runtime writes are not)
+backend/app/data/drafts.json
+backend/app/data/briefs.json
+backend/app/data/agent_runs.json
+backend/app/data/triage.json
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/

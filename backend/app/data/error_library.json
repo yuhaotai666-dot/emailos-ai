@@ -1,0 +1,18 @@
+[
+  {
+    "id": "ec-001",
+    "situation": "Declining a creator's rate",
+    "bad_output": "We cannot afford this rate.",
+    "correction": "At this stage, this is above what we can commit to for the pilot.",
+    "lesson": "Avoid direct affordability framing; use pilot/budget-stage language and keep the door open.",
+    "error_type": "tone"
+  },
+  {
+    "id": "ec-002",
+    "situation": "Answering a payment-timing question",
+    "bad_output": "Your payment will be sent on Friday.",
+    "correction": "The team is reviewing it now and I'll confirm the exact timing once approval is complete.",
+    "lesson": "Never commit a payment date/amount without confirmation; reference the review/approval process.",
+    "error_type": "risk"
+  }
+]

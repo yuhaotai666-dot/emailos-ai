@@ -1,0 +1,25 @@
+[
+  {
+    "id": "sp-001",
+    "situation": "Creator asks for a high fixed fee",
+    "successful_reply": "Thanks for sharing your rate. To be transparent, at this stage we're on an early pilot budget, so that fixed fee is above what we can commit to. We'd love to work together on a smaller base fee plus a revenue share, and we're happy to reconnect on a larger budget as things grow.",
+    "why_it_worked": "Explained the pilot stage honestly, offered a workable alternative (base + revenue share), and kept the relationship warm for the future.",
+    "reusable_phrases": [
+      "to be transparent",
+      "at this stage",
+      "a smaller base fee plus a revenue share",
+      "happy to reconnect when we have a larger budget"
+    ]
+  },
+  {
+    "id": "sp-002",
+    "situation": "Creator reports credits redeemed in the wrong place",
+    "successful_reply": "Sorry for the hassle. Could you send a quick screenshot of what you're seeing? In the meantime it's worth checking the web dashboard, since credits sometimes land under a different section. Once I see it I'll get it sorted quickly.",
+    "why_it_worked": "Took ownership, asked for the one piece of info needed (screenshot), and offered an immediate self-serve check.",
+    "reusable_phrases": [
+      "sorry for the hassle",
+      "could you send a quick screenshot",
+      "worth checking the web dashboard"
+    ]
+  }
+]

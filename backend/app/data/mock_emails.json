@@ -1,0 +1,102 @@
+[
+  {
+    "id": "em-001",
+    "thread_id": "th-001",
+    "sender_name": "Maya Chen",
+    "sender_email": "maya@creators.example",
+    "subject": "Payment for last video?",
+    "body_preview": "Hi Theo, just checking when the payment for my last video will be sent? I haven't been paid yet and wanted to confirm the timing.",
+    "received_at": "2026-06-30T09:12:00+00:00",
+    "source": "mock"
+  },
+  {
+    "id": "em-002",
+    "thread_id": "th-002",
+    "sender_name": "Liam Ortega",
+    "sender_email": "liam@yt.example",
+    "subject": "My rate for the collab",
+    "body_preview": "Hey Theo, my rate is $600 per video until 15 July, after that it goes up. Let me know if that works for the partnership.",
+    "received_at": "2026-06-30T10:40:00+00:00",
+    "source": "mock"
+  },
+  {
+    "id": "em-003",
+    "thread_id": "th-003",
+    "sender_name": "Priya Nair",
+    "sender_email": "priya@yt.example",
+    "subject": "Tracking link for the campaign",
+    "body_preview": "Could you send me the tracking link for the campaign so I can add it to the video description before I publish?",
+    "received_at": "2026-06-30T11:05:00+00:00",
+    "source": "mock"
+  },
+  {
+    "id": "em-004",
+    "thread_id": "th-004",
+    "sender_name": "Diego Santos",
+    "sender_email": "diego@creators.example",
+    "subject": "Credits issue",
+    "body_preview": "I think I redeemed my credits in the wrong place and now I can't find them in my account. Can you help me sort this out?",
+    "received_at": "2026-06-30T12:20:00+00:00",
+    "source": "mock"
+  },
+  {
+    "id": "em-005",
+    "thread_id": "th-005",
+    "sender_name": "Sarah Kim",
+    "sender_email": "sarah@cryptovistahub.example",
+    "subject": "Posting question",
+    "body_preview": "Quick one, will the video be posted on the CryptoVistaHub channel? Want to make sure we are aligned before I share it around.",
+    "received_at": "2026-06-30T13:15:00+00:00",
+    "source": "mock"
+  },
+  {
+    "id": "em-006",
+    "thread_id": "th-006",
+    "sender_name": "Noah Bennett",
+    "sender_email": "noah@influence.example",
+    "subject": "Collaboration structure",
+    "body_preview": "Hi Theo, I'd love to understand how your collaboration structure works before we move forward. What does a typical deal look like?",
+    "received_at": "2026-06-30T14:02:00+00:00",
+    "source": "mock"
+  },
+  {
+    "id": "em-007",
+    "thread_id": "th-007",
+    "sender_name": "Emma Wilson",
+    "sender_email": "emma@brand.example",
+    "subject": "Quick call this week?",
+    "body_preview": "Are you available for a quick call this week to align on the campaign? Let me know a good time and I'll send an invite.",
+    "received_at": "2026-06-30T15:30:00+00:00",
+    "source": "mock"
+  },
+  {
+    "id": "em-008",
+    "thread_id": "th-008",
+    "sender_name": "Carlos Mendes",
+    "sender_email": "carlos@creators.example",
+    "subject": "Can't log in",
+    "body_preview": "I can't log in to the dashboard to access the product. Do you need a screenshot of the error I'm getting?",
+    "received_at": "2026-07-01T08:45:00+00:00",
+    "source": "mock"
+  },
+  {
+    "id": "em-009",
+    "thread_id": "th-009",
+    "sender_name": "Aisha Rahman",
+    "sender_email": "aisha@team.superintern.example",
+    "subject": "Feedback on the cut?",
+    "body_preview": "Could you review the latest cut and share your feedback when you get a chance? Hoping to lock it by tomorrow.",
+    "received_at": "2026-07-01T09:10:00+00:00",
+    "source": "mock"
+  },
+  {
+    "id": "em-010",
+    "thread_id": "th-010",
+    "sender_name": "Web3 Weekly",
+    "sender_email": "no-reply@web3weekly.example",
+    "subject": "This week in Web3",
+    "body_preview": "Your weekly digest of the top crypto and Web3 stories. Read the highlights below. Unsubscribe anytime.",
+    "received_at": "2026-07-01T06:00:00+00:00",
+    "source": "mock"
+  }
+]
