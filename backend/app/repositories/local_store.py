@@ -109,8 +109,16 @@ class LocalStore:
         self.data_dir = data_dir
         data_dir.mkdir(parents=True, exist_ok=True)
 
-        # Seed collections (committed JSON) use email_id/id as key.
-        self.emails = JsonCollection(data_dir / "mock_emails.json", Email)
+        # Working email set (runtime, gitignored). Seeded from the committed
+        # mock_emails.json on first use; the Gmail provider replaces it with
+        # real messages — the seed file itself is never written to.
+        self.emails = JsonCollection(data_dir / "emails.json", Email)
+        if not self.emails.list():
+            seed_path = data_dir / "mock_emails.json"
+            if seed_path.exists():
+                seeds = JsonCollection(seed_path, Email).list()
+                if seeds:
+                    self.emails.replace_all(seeds)
         self.memory_rules = JsonCollection(data_dir / "memory_rules.json", MemoryRule)
         self.error_cases = JsonCollection(data_dir / "error_library.json", ErrorCase)
         self.success_patterns = JsonCollection(

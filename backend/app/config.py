@@ -39,11 +39,13 @@ class Settings(BaseSettings):
     gmail_credentials_path: str = str(BACKEND_DIR / "secrets" / "gmail_credentials.json")
     gmail_token_path: str = str(BACKEND_DIR / "secrets" / "gmail_token.json")
     # Which messages to pull, Gmail search syntax.
-    gmail_query: str = "newer_than:7d category:primary"
+    gmail_query: str = "newer_than:7d"
 
     # Agent loop
     max_draft_retries: int = 2
     min_draft_score: int = 8
+    # Emails processed concurrently per triage run (LLM calls dominate latency).
+    triage_concurrency: int = 8
 
     # CORS
     allowed_origins: str = (

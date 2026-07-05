@@ -21,8 +21,15 @@ SEED_FILES = [
 
 @pytest.fixture
 def settings() -> Settings:
-    # Force the offline mock provider regardless of the developer's real .env.
-    return Settings(anthropic_api_key="", llm_provider="mock", max_draft_retries=2, min_draft_score=8)
+    # Force every provider offline regardless of the developer's real .env
+    # (which may point at real OpenAI + real Gmail).
+    return Settings(
+        anthropic_api_key="",
+        llm_provider="mock",
+        email_provider="mock",
+        max_draft_retries=2,
+        min_draft_score=8,
+    )
 
 
 @pytest.fixture

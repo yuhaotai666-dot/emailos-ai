@@ -12,6 +12,7 @@ the brief, follow-up detection, and the single-draft route operations
 """
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -83,15 +84,28 @@ class WorkflowEngine:
         triage_results: list[TriageResult] = []
         drafts: list[Draft] = []
 
-        for email in emails:
+        # LLM latency dominates, so process emails concurrently. Each graph
+        # invocation carries its own state; results are collected and written
+        # to the store afterwards (in inbox order) to keep persistence simple.
+        def _process(email: Email):
             try:
-                result = self.graph.invoke(
+                return email, self.graph.invoke(
                     {"email": email, "max_retries": self.settings.max_draft_retries}
-                )
+                ), None
             except Exception as exc:  # keep the run alive on a single bad email
+                return email, None, exc
+
+        workers = max(1, self.settings.triage_concurrency)
+        if workers == 1 or len(emails) <= 1:
+            outcomes = [_process(e) for e in emails]
+        else:
+            with ThreadPoolExecutor(max_workers=workers) as pool:
+                outcomes = list(pool.map(_process, emails))
+
+        for email, result, exc in outcomes:
+            if exc is not None:
                 run.errors.append(f"agent {email.id}: {exc}")
                 continue
-
             triage = result.get("triage")
             if triage is not None:
                 self.store.triage.update(triage)

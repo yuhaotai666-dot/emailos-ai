@@ -13,8 +13,8 @@ and a refresh token is saved to ``secrets/gmail_token.json`` (gitignored).
 """
 from __future__ import annotations
 
-import base64
 import re
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from email.utils import parseaddr
 from pathlib import Path
@@ -71,11 +71,17 @@ class GmailProvider(EmailProvider):
         )
         ids = [m["id"] for m in listing.get("messages", [])]
 
-        emails: list[Email] = []
-        for msg_id in ids:
+        # Per-message fetches are independent HTTP calls — do them concurrently.
+        # Each thread builds its own service client (httplib2 is not thread-safe).
+        creds = _load_credentials(self.settings)
+
+        def _fetch(msg_id: str) -> Email:
+            from googleapiclient.discovery import build
+
+            svc_local = build("gmail", "v1", credentials=creds, cache_discovery=False)
             # format=metadata returns headers + snippet only — never the body.
             msg = (
-                svc.users()
+                svc_local.users()
                 .messages()
                 .get(
                     userId="me",
@@ -85,7 +91,13 @@ class GmailProvider(EmailProvider):
                 )
                 .execute()
             )
-            emails.append(_to_email(msg))
+            return _to_email(msg)
+
+        if len(ids) <= 1:
+            emails = [_fetch(i) for i in ids]
+        else:
+            with ThreadPoolExecutor(max_workers=8) as pool:
+                emails = list(pool.map(_fetch, ids))
 
         # Mirror into the store so joins (triage/drafts/people) keep working.
         self.store.emails.replace_all(emails)

@@ -11,6 +11,7 @@ venv/
 backend/.env
 
 # Runtime data (seed files are committed; runtime writes are not)
+backend/app/data/emails.json
 backend/app/data/drafts.json
 backend/app/data/briefs.json
 backend/app/data/agent_runs.json
