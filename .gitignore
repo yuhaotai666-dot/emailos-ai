@@ -22,3 +22,6 @@ backend/app/data/triage.json
 .vscode/
 backend/app/data/profile.json
 backend/app/data/sub_agents.json
+
+# Google OAuth secrets — never commit
+backend/secrets/

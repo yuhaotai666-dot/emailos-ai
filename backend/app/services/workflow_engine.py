@@ -53,7 +53,7 @@ class WorkflowEngine:
         self.store = store or get_store()
         self.llm = llm or get_llm_client()
         self.settings = settings or get_settings()
-        self.provider = email_provider or MockEmailProvider(self.store)
+        self.provider = email_provider or _default_provider(self.store, self.settings)
         self.classifier = Classifier(self.llm)
         self.retriever = ContextRetriever(self.store)
         self.generator = DraftGenerator(self.llm)
@@ -220,6 +220,15 @@ def _detect_follow_ups(emails: list[Email], triage: list[TriageResult]) -> list[
                 )
             )
     return out
+
+
+def _default_provider(store: LocalStore, settings: Settings) -> EmailProvider:
+    """Select the email source from EMAIL_PROVIDER ("mock" | "gmail")."""
+    if settings.email_provider == "gmail":
+        from .gmail_provider import GmailProvider
+
+        return GmailProvider(store, settings)
+    return MockEmailProvider(store)
 
 
 _engine: Optional[WorkflowEngine] = None

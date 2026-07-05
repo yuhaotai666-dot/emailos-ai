@@ -32,8 +32,14 @@ class Settings(BaseSettings):
     llm_model: str = "claude-sonnet-4-6"
 
     # Sources / persistence
-    email_provider: str = "mock"
+    email_provider: str = "mock"  # "mock" | "gmail"
     database_provider: str = "local"
+
+    # Gmail (read-only). Files live under backend/secrets/ (gitignored).
+    gmail_credentials_path: str = str(BACKEND_DIR / "secrets" / "gmail_credentials.json")
+    gmail_token_path: str = str(BACKEND_DIR / "secrets" / "gmail_token.json")
+    # Which messages to pull, Gmail search syntax.
+    gmail_query: str = "newer_than:7d category:primary"
 
     # Agent loop
     max_draft_retries: int = 2
