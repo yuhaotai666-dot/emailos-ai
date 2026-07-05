@@ -10,6 +10,7 @@ from .draft import ConstraintCheck, Draft
 from .email import Email
 from .meeting import Meeting, MeetingFollowUp, MeetingTodo
 from .profile import UserProfile
+from .routine import Nudge, Routine
 from .enums import Category, DraftStatus, Priority
 from .evaluation import Critique, Evaluation
 from .memory import (
@@ -46,7 +47,9 @@ __all__ = [
     "MemoryProfile",
     "MemoryRule",
     "MemorySection",
+    "Nudge",
     "Priority",
+    "Routine",
     "SubAgent",
     "SuccessPattern",
     "TriageResult",

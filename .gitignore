@@ -12,6 +12,8 @@ backend/.env
 
 # Runtime data (seed files are committed; runtime writes are not)
 backend/app/data/emails.json
+backend/app/data/routines.json
+backend/app/data/nudges.json
 backend/app/data/drafts.json
 backend/app/data/briefs.json
 backend/app/data/agent_runs.json

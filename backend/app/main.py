@@ -25,6 +25,7 @@ from .routes import (
     memory,
     people,
     profile,
+    routines,
     todos,
 )
 
@@ -69,6 +70,7 @@ app.include_router(profile.router)
 app.include_router(meetings.router)
 app.include_router(todos.router)
 app.include_router(chat.router)
+app.include_router(routines.router)
 
 
 @app.on_event("startup")
@@ -77,6 +79,24 @@ def _seed() -> None:
     store = get_store()
     _ = store.emails.list()
     _ = store.memory_rules.list()
+
+
+@app.on_event("startup")
+async def _start_scheduler() -> None:
+    # Proactive engine: checks due routines once a minute. In-app results
+    # only (nudges) — the scheduler cannot send anything.
+    import asyncio
+
+    from .services.scheduler import scheduler_loop
+
+    app.state.scheduler_task = asyncio.create_task(scheduler_loop())
+
+
+@app.on_event("shutdown")
+async def _stop_scheduler() -> None:
+    task = getattr(app.state, "scheduler_task", None)
+    if task:
+        task.cancel()
 
 
 @app.get("/")

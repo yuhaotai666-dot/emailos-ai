@@ -20,6 +20,8 @@ from ..models import (
     ErrorCase,
     Meeting,
     MemoryRule,
+    Nudge,
+    Routine,
     SubAgent,
     SuccessPattern,
     TriageResult,
@@ -135,6 +137,22 @@ class LocalStore:
         )
         self.profile = JsonCollection(data_dir / "profile.json", UserProfile)
         self.sub_agents = JsonCollection(data_dir / "sub_agents.json", SubAgent)
+
+        # Proactive engine collections (runtime, gitignored).
+        self.routines = JsonCollection(data_dir / "routines.json", Routine)
+        self.nudges = JsonCollection(data_dir / "nudges.json", Nudge)
+        if not self.routines.list():
+            self.routines.add(
+                Routine(
+                    id="routine-morning-briefing",
+                    title="Morning Briefing",
+                    prompt="Triage the inbox and prepare today's brief and to-dos.",
+                    schedule="daily",
+                    time="08:30",
+                    kind="triage_brief",
+                    created_from="seed",
+                )
+            )
 
         # Built-in domain agents (email/meeting/reminder): seed once, never
         # duplicate. Custom agents created by Ivy live alongside them.

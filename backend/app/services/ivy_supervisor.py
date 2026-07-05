@@ -112,7 +112,34 @@ class IvySupervisor:
             supervisor.store.sub_agents.update(agent)
             return f"[{agent.name} 的产出]\n{result}"
 
-        return [list_specialists, create_specialist, delegate]
+        @tool
+        def create_routine(title: str, prompt: str, time: str = "08:30", schedule: str = "daily") -> str:
+            """Schedule a recurring task. Ivy will run it automatically and the
+            result appears in the app (never sent anywhere).
+
+            Args:
+                title: short name, e.g. "Morning to-do briefing".
+                prompt: what to do each run, fully self-contained.
+                time: local HH:MM, e.g. "08:30".
+                schedule: "daily" or "weekly".
+            """
+            from ..models import Routine
+
+            routine = Routine(
+                title=title,
+                prompt=prompt,
+                time=time,
+                schedule=schedule if schedule in ("daily", "weekly") else "daily",
+                kind="ivy_task",
+                created_from="chat",
+            )
+            supervisor.store.routines.add(routine)
+            supervisor._events.append(
+                ChatEvent(kind="routine_created", label=f"新建定时任务 {title}（{schedule} {time}）")
+            )
+            return f"Routine '{title}' scheduled ({schedule} at {time}). Results will appear in the app."
+
+        return [list_specialists, create_specialist, delegate, create_routine]
 
     # -------------------------------------------------------- specialist run
     def _run_specialist(self, agent: SubAgent, task: str) -> str:
@@ -166,6 +193,8 @@ class IvySupervisor:
             "specialist keeps failing, stop, and tell the user what went wrong instead.\n"
             "5. Answer the user concisely in the user's language, integrating the reviewed result.\n\n"
             f"Shared toolbox available to you and specialists:\n{toolbox_catalog()}\n\n"
+            "Scheduling: when the user asks for something recurring ('every day at "
+            "8:30…', 'each week…'), use create_routine — do not delegate it.\n\n"
             "Drafting hint: for reply-drafting tasks give the specialist "
             "list_recent_emails + create_reply_draft. create_reply_draft already runs "
             "the full quality loop internally — one call (with the user's tone/length "
