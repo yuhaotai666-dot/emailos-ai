@@ -136,6 +136,15 @@ class LocalStore:
         self.profile = JsonCollection(data_dir / "profile.json", UserProfile)
         self.sub_agents = JsonCollection(data_dir / "sub_agents.json", SubAgent)
 
+        # Built-in domain agents (email/meeting/reminder): seed once, never
+        # duplicate. Custom agents created by Ivy live alongside them.
+        system_path = data_dir / "system_agents.json"
+        if system_path.exists():
+            existing = {a.name for a in self.sub_agents.list()}
+            for agent in JsonCollection(system_path, SubAgent).list():
+                if agent.name not in existing:
+                    self.sub_agents.add(agent)
+
 
 _store: Optional[LocalStore] = None
 

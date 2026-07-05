@@ -5,6 +5,17 @@ from app.models import SubAgent
 from app.services.ivy_supervisor import IvySupervisor
 
 
+def test_system_agents_seeded_once(store, tmp_path):
+    from app.repositories.local_store import LocalStore
+
+    names = [a.name for a in store.sub_agents.list() if a.kind == "system"]
+    assert sorted(names) == ["email-agent", "meeting-agent", "reminder-agent"]
+
+    # Re-opening the same data dir must not duplicate the seeds.
+    again = LocalStore(store.data_dir)
+    assert len([a for a in again.sub_agents.list() if a.kind == "system"]) == 3
+
+
 def test_registry_persists_specialists(store):
     agent = SubAgent(
         name="rate-analyst",
@@ -13,10 +24,10 @@ def test_registry_persists_specialists(store):
         tools=["list_recent_emails"],
     )
     store.sub_agents.add(agent)
-    loaded = store.sub_agents.list()
-    assert len(loaded) == 1
-    assert loaded[0].name == "rate-analyst"
-    assert loaded[0].runs == 0
+    customs = [a for a in store.sub_agents.list() if a.kind == "custom"]
+    assert len(customs) == 1
+    assert customs[0].name == "rate-analyst"
+    assert customs[0].runs == 0
 
 
 def test_mock_chat_returns_scripted_response(store, mock_llm):

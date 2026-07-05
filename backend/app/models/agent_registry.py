@@ -25,6 +25,9 @@ class SubAgent(BaseModel):
     id: str = Field(default_factory=_uuid)
     # Short unique handle Ivy uses to address it, e.g. "rate-analyst".
     name: str
+    # "system" = built-in domain agent (email/meeting/reminder), "custom" =
+    # created by Ivy from a user request.
+    kind: str = "custom"
     # What tasks this specialist handles — Ivy matches new tasks against this.
     description: str
     # The specialist's standing instructions (its system prompt).

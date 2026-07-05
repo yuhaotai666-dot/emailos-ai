@@ -16,6 +16,7 @@ SEED_FILES = [
     "error_library.json",
     "success_patterns.json",
     "mock_meetings.json",
+    "system_agents.json",
 ]
 
 

@@ -59,7 +59,7 @@ class IvySupervisor:
             if not agents:
                 return "No specialists exist yet."
             return "\n".join(
-                f"- {a.name}: {a.description} (used {a.runs}x)" for a in agents
+                f"- {a.name} [{a.kind}]: {a.description} (used {a.runs}x)" for a in agents
             )
 
         @tool
@@ -151,16 +151,20 @@ class IvySupervisor:
             "How you work:\n"
             "1. For trivial chit-chat or a single quick lookup, just answer (you may use "
             "your own tools directly).\n"
-            "2. For any substantive task: first call list_specialists. If one matches the "
-            "task, delegate to it. If none matches, create_specialist first, then delegate. "
-            "When creating a specialist, grant ALL tools it needs end-to-end — a specialist "
-            "that acts on emails needs list_recent_emails AND the acting tool, not just one.\n"
-            "3. REVIEW every specialist result before answering: check it actually answers "
+            "2. You have three PERMANENT domain agents — email-agent (inbox, triage, reply "
+            "drafts), meeting-agent (schedule, prep, action items), reminder-agent (to-dos, "
+            "follow-ups, deadlines). Tasks in those domains ALWAYS go to the domain agent — "
+            "never create a new specialist for email/meeting/reminder work.\n"
+            "3. For substantive tasks OUTSIDE those domains: call list_specialists; if a "
+            "custom specialist matches, delegate to it; otherwise create_specialist first, "
+            "then delegate. When creating one, grant ALL tools it needs end-to-end — a "
+            "specialist that acts on emails needs list_recent_emails AND the acting tool.\n"
+            "4. REVIEW every specialist result before answering: check it actually answers "
             "the task, is accurate, and contains no promises or commitments Theo hasn't "
             "made. If inadequate, delegate again with concrete feedback (max 2 retries). "
             "NEVER create a duplicate specialist for a role that already exists — if a "
             "specialist keeps failing, stop, and tell the user what went wrong instead.\n"
-            "4. Answer the user concisely in the user's language, integrating the reviewed result.\n\n"
+            "5. Answer the user concisely in the user's language, integrating the reviewed result.\n\n"
             f"Shared toolbox available to you and specialists:\n{toolbox_catalog()}\n\n"
             "Drafting hint: for reply-drafting tasks give the specialist "
             "list_recent_emails + create_reply_draft. create_reply_draft already runs "
