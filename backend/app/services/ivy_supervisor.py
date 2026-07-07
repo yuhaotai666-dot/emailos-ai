@@ -41,6 +41,10 @@ def _slugify(name: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-") or "specialist"
 
 
+def _contains_chinese(text: str) -> bool:
+    return any("一" <= ch <= "鿿" for ch in text)
+
+
 class IvySupervisor:
     def __init__(self, store: Optional[LocalStore] = None, llm: Optional[LLMClient] = None):
         self.store = store or get_store()
@@ -154,7 +158,8 @@ class IvySupervisor:
                 "efficiently: call each tool AT MOST twice, then give your final "
                 "answer — do not keep re-calling tools to polish. If a tool result "
                 "is good enough, stop and report it. You cannot send emails — if "
-                "asked to, produce draft text instead."
+                "asked to, produce draft text instead. Report in the language of "
+                "the task you were given (default English)."
             ),
         )
         try:
@@ -176,8 +181,9 @@ class IvySupervisor:
             "You are Ivy, Theo's personal assistant at SuperIntern (growth & partnerships). "
             "You are a planner-supervisor: you rarely do specialised work yourself.\n\n"
             "How you work:\n"
-            "1. For trivial chit-chat or a single quick lookup, just answer (you may use "
-            "your own tools directly).\n"
+            "1. For trivial chit-chat or a single quick lookup (weather, today's schedule, "
+            "the daily brief), answer DIRECTLY with your own tools — one tool call, then "
+            "answer. Do not call list_specialists for these.\n"
             "2. You have three PERMANENT domain agents — email-agent (inbox, triage, reply "
             "drafts), meeting-agent (schedule, prep, action items), reminder-agent (to-dos, "
             "follow-ups, deadlines). Tasks in those domains ALWAYS go to the domain agent — "
@@ -191,7 +197,11 @@ class IvySupervisor:
             "made. If inadequate, delegate again with concrete feedback (max 2 retries). "
             "NEVER create a duplicate specialist for a role that already exists — if a "
             "specialist keeps failing, stop, and tell the user what went wrong instead.\n"
-            "5. Answer the user concisely in the user's language, integrating the reviewed result.\n\n"
+            "5. Answer concisely, integrating the reviewed result.\n\n"
+            "Language: your default language is ENGLISH. Mirror the user's language per "
+            "message — if the user writes in Chinese, reply in Chinese; otherwise reply in "
+            "English. Email drafts themselves stay in the language of the email being "
+            "answered (usually English).\n\n"
             f"Shared toolbox available to you and specialists:\n{toolbox_catalog()}\n\n"
             "Scheduling: when the user asks for something recurring ('every day at "
             "8:30…', 'each week…'), use create_routine — do not delegate it.\n\n"
@@ -211,7 +221,14 @@ class IvySupervisor:
         from langgraph.prebuilt import create_react_agent
 
         self._events = []
-        own_tools = [TOOLBOX["get_weather"], TOOLBOX["web_search"], TOOLBOX["get_daily_brief"]]
+        # Ivy's own quick-lookup tools: enough to answer common "what's my
+        # day look like" questions in one step without delegation.
+        own_tools = [
+            TOOLBOX["get_weather"],
+            TOOLBOX["web_search"],
+            TOOLBOX["get_daily_brief"],
+            TOOLBOX["list_meetings"],
+        ]
         ivy = create_react_agent(
             self.llm.model,
             tools=own_tools + self._make_meta_tools(),
@@ -219,7 +236,12 @@ class IvySupervisor:
         )
 
         history = self._histories.setdefault(conversation_id, [])
-        history.append(HumanMessage(content=message))
+        # Deterministic language mirroring: small models miss prompt-level
+        # language rules, so attach an explicit per-message instruction.
+        lang_hint = (
+            "（请用中文回答。）" if _contains_chinese(message) else "(Reply in English.)"
+        )
+        history.append(HumanMessage(content=f"{message}\n\n{lang_hint}"))
 
         try:
             out = ivy.invoke(

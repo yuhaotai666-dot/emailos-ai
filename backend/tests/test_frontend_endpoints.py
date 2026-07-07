@@ -19,10 +19,15 @@ from app.services.memory_service import MemoryService
 
 
 @pytest.fixture
-def live_store(store, engine, monkeypatch):
-    """Run triage on the fixture store, then make it the app-global store."""
+def live_store(store, engine, settings, monkeypatch):
+    """Run triage on the fixture store, then make it the app-global store.
+    Route-level settings are pinned to the offline fixture so a real .env
+    (gmail/google providers) can never leak network calls into tests."""
     engine.run_triage()
     monkeypatch.setattr(local_store, "_store", store)
+    import app.routes.meetings as meetings_route
+
+    monkeypatch.setattr(meetings_route, "get_settings", lambda: settings)
     return store
 
 

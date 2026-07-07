@@ -28,6 +28,7 @@ def settings() -> Settings:
         anthropic_api_key="",
         llm_provider="mock",
         email_provider="mock",
+        calendar_provider="mock",
         max_draft_retries=2,
         min_draft_score=8,
     )
