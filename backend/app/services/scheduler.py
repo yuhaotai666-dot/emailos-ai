@@ -64,7 +64,10 @@ def run_routine(routine: Routine, store: LocalStore | None = None) -> Nudge:
     else:
         from .ivy_supervisor import get_supervisor
 
-        resp = get_supervisor().chat(routine.prompt, conversation_id=f"routine-{routine.id}")
+        # Nudges are ambient UI content — always English (the product default),
+        # regardless of the language the routine was created in.
+        prompt = f"{routine.prompt}\n\n(Reply in English.)"
+        resp = get_supervisor().chat(prompt, conversation_id=f"routine-{routine.id}")
         nudge = Nudge(routine_id=routine.id, title=routine.title, body=resp.reply)
 
     store.nudges.add(nudge)
