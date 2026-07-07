@@ -17,31 +17,14 @@ import re
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from email.utils import parseaddr
-from pathlib import Path
 
 from ..config import Settings, get_settings
 from ..models import Email
 from ..repositories import LocalStore, get_store
+from .google_auth import SCOPES, load_credentials as _load_credentials  # shared Google OAuth
 from .mock_email_provider import EmailProvider
 
-# Read-only: the token minted with this scope cannot send email. Ever.
-SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
-
-
-def _load_credentials(settings: Settings):
-    from google.auth.transport.requests import Request
-    from google.oauth2.credentials import Credentials
-
-    token_path = Path(settings.gmail_token_path)
-    if not token_path.exists():
-        raise RuntimeError(
-            f"Gmail token not found at {token_path}. Run: python -m app.gmail_auth"
-        )
-    creds = Credentials.from_authorized_user_file(str(token_path), SCOPES)
-    if creds.expired and creds.refresh_token:
-        creds.refresh(Request())
-        token_path.write_text(creds.to_json(), encoding="utf-8")
-    return creds
+__all__ = ["GmailProvider", "SCOPES"]
 
 
 class GmailProvider(EmailProvider):

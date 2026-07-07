@@ -126,7 +126,16 @@ class LocalStore:
         self.success_patterns = JsonCollection(
             data_dir / "success_patterns.json", SuccessPattern
         )
-        self.meetings = JsonCollection(data_dir / "mock_meetings.json", Meeting)
+        # Working meeting set (runtime, gitignored) — seeded from the committed
+        # mock file; the Google Calendar provider replaces it with real events
+        # and never writes to the seed.
+        self.meetings = JsonCollection(data_dir / "meetings.json", Meeting)
+        if not self.meetings.list():
+            meeting_seed = data_dir / "mock_meetings.json"
+            if meeting_seed.exists():
+                seeds = JsonCollection(meeting_seed, Meeting).list()
+                if seeds:
+                    self.meetings.replace_all(seeds)
 
         # Runtime collections (created on demand, gitignored).
         self.drafts = JsonCollection(data_dir / "drafts.json", Draft)

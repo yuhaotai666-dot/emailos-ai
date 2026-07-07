@@ -41,6 +41,10 @@ class Settings(BaseSettings):
     # Which messages to pull, Gmail search syntax.
     gmail_query: str = "newer_than:7d"
 
+    # Calendar (read-only). Same OAuth token as Gmail.
+    calendar_provider: str = "mock"  # "mock" | "google"
+    calendar_days_ahead: int = 7
+
     # Agent loop
     max_draft_retries: int = 2
     min_draft_score: int = 8

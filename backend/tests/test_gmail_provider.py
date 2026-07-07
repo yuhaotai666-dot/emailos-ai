@@ -40,9 +40,10 @@ def test_to_email_handles_missing_fields():
     assert e.subject == "(no subject)"
 
 
-def test_scope_is_readonly_only():
-    # The whole integration is read-only by construction.
-    assert SCOPES == ["https://www.googleapis.com/auth/gmail.readonly"]
+def test_scopes_are_readonly_only():
+    # The whole Google integration (Gmail + Calendar) is read-only by construction.
+    assert SCOPES  # non-empty
+    assert all(s.endswith(".readonly") for s in SCOPES)
 
 
 def test_clean_snippet_truncates():
