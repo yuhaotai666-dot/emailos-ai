@@ -65,3 +65,7 @@ def test_run_routine_triage_brief_produces_nudge(store, mock_llm, settings, monk
 
     # Immediately re-checking: not due again today.
     assert run_due_routines(store, datetime.now()) == []
+
+    # A re-run replaces the previous nudge instead of stacking a history.
+    run_routine(routine, store)
+    assert len([n for n in store.nudges.list() if n.routine_id == routine.id]) == 1

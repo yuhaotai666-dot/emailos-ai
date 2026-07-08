@@ -70,6 +70,11 @@ def run_routine(routine: Routine, store: LocalStore | None = None) -> Nudge:
         resp = get_supervisor().chat(prompt, conversation_id=f"routine-{routine.id}")
         nudge = Nudge(routine_id=routine.id, title=routine.title, body=resp.reply)
 
+    # A fresh result replaces the routine's previous ones — the briefing is a
+    # "current state" view, not a history feed.
+    for old in store.nudges.list():
+        if old.routine_id == routine.id:
+            store.nudges.delete(old.id)
     store.nudges.add(nudge)
     routine.last_run_at = datetime.now().astimezone()
     store.routines.update(routine)
