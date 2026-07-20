@@ -1,12 +1,14 @@
 """User + assistant profile endpoints (onboarding writes, settings reads)."""
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+
+from ..context import user_scope
 
 from ..models import UserProfile
 from ..repositories import get_store
 
-router = APIRouter(prefix="/api/profile", tags=["profile"])
+router = APIRouter(prefix="/api/profile", tags=["profile"], dependencies=[Depends(user_scope)])
 
 
 @router.get("", response_model=UserProfile)

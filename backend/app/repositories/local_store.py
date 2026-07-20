@@ -17,7 +17,9 @@ from ..models import (
     DailyBrief,
     Draft,
     Email,
+    EmailEventLink,
     ErrorCase,
+    EventTag,
     Meeting,
     MemoryRule,
     Nudge,
@@ -105,10 +107,17 @@ class JsonCollection(Collection[T]):
 
 
 class LocalStore:
-    """Container exposing one typed collection per domain entity."""
+    """Container exposing one typed collection per domain entity.
 
-    def __init__(self, data_dir: Path = DATA_DIR):
+    ``seed_dir`` is where the committed seed files (mock_emails.json,
+    system_agents.json, …) live. It defaults to ``data_dir`` (the legacy
+    single-user layout); per-user stores pass the shared ``DATA_DIR`` so every
+    new user starts from the same seeds while their data stays isolated.
+    """
+
+    def __init__(self, data_dir: Path = DATA_DIR, seed_dir: Optional[Path] = None):
         self.data_dir = data_dir
+        self.seed_dir = seed_dir or data_dir
         data_dir.mkdir(parents=True, exist_ok=True)
 
         # Working email set (runtime, gitignored). Seeded from the committed
@@ -116,7 +125,7 @@ class LocalStore:
         # real messages — the seed file itself is never written to.
         self.emails = JsonCollection(data_dir / "emails.json", Email)
         if not self.emails.list():
-            seed_path = data_dir / "mock_emails.json"
+            seed_path = self.seed_dir / "mock_emails.json"
             if seed_path.exists():
                 seeds = JsonCollection(seed_path, Email).list()
                 if seeds:
@@ -131,7 +140,7 @@ class LocalStore:
         # and never writes to the seed.
         self.meetings = JsonCollection(data_dir / "meetings.json", Meeting)
         if not self.meetings.list():
-            meeting_seed = data_dir / "mock_meetings.json"
+            meeting_seed = self.seed_dir / "mock_meetings.json"
             if meeting_seed.exists():
                 seeds = JsonCollection(meeting_seed, Meeting).list()
                 if seeds:
@@ -146,6 +155,12 @@ class LocalStore:
         )
         self.profile = JsonCollection(data_dir / "profile.json", UserProfile)
         self.sub_agents = JsonCollection(data_dir / "sub_agents.json", SubAgent)
+
+        # Manual event tags + their email assignments (user-managed, no LLM).
+        self.events = JsonCollection(data_dir / "events.json", EventTag)
+        self.email_events = JsonCollection(
+            data_dir / "email_events.json", EmailEventLink, id_field="email_id"
+        )
 
         # Proactive engine collections (runtime, gitignored).
         self.routines = JsonCollection(data_dir / "routines.json", Routine)
@@ -163,21 +178,50 @@ class LocalStore:
                 )
             )
 
-        # Built-in domain agents (email/meeting/reminder): seed once, never
-        # duplicate. Custom agents created by Ivy live alongside them.
-        system_path = data_dir / "system_agents.json"
+        # Built-in domain agents (email/meeting/reminder): never duplicated,
+        # but their *definition* (description/prompt/tools/display_name) is
+        # re-synced from the seed file on every load so code-side updates
+        # (e.g. adding a display_name) reach installs with pre-existing data.
+        # Usage stats (runs/last_used_at) and id/created_at are preserved.
+        # Custom agents created by Ivy live alongside these, untouched.
+        system_path = self.seed_dir / "system_agents.json"
         if system_path.exists():
-            existing = {a.name for a in self.sub_agents.list()}
+            by_name = {a.name: a for a in self.sub_agents.list()}
             for agent in JsonCollection(system_path, SubAgent).list():
-                if agent.name not in existing:
+                current = by_name.get(agent.name)
+                if current is None:
                     self.sub_agents.add(agent)
+                else:
+                    synced = current.model_copy(
+                        update={
+                            "description": agent.description,
+                            "system_prompt": agent.system_prompt,
+                            "tools": agent.tools,
+                            "display_name": agent.display_name,
+                        }
+                    )
+                    if synced != current:
+                        self.sub_agents.update(synced)
 
 
 _store: Optional[LocalStore] = None
 
 
-def get_store() -> LocalStore:
+def _legacy_store() -> LocalStore:
+    """The process-wide single-user store (backend/app/data)."""
     global _store
     if _store is None:
         _store = LocalStore()
     return _store
+
+
+def get_store() -> LocalStore:
+    """The store for the *current request's user* when a request context is
+    active (multi-user mode), else the legacy single-user store (tests, CLI,
+    auth-disabled local dev). Existing call sites need no changes."""
+    from ..context import current_context  # runtime import avoids a cycle
+
+    ctx = current_context()
+    if ctx is not None:
+        return ctx.store
+    return _legacy_store()

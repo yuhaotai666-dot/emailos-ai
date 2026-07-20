@@ -19,6 +19,7 @@ from ..models import (
     TriageResult,
 )
 from ._chains import SYS_USER_PROMPT
+from ._prompt_layers import as_data, user_rules_block
 from ._theo import PREFERRED_PHRASES, THEO_CONTEXT, TONE_GUIDE
 from .context_retriever import RetrievedContext
 from .llm_client import LLMClient, get_llm_client
@@ -76,28 +77,49 @@ class DraftGenerator:
 
     # ---- real LLM path ----
     def _system(self, context: RetrievedContext) -> str:
+        # Assembled in instruction-hierarchy order (top overrides bottom):
+        # safety → app/product persona → user rules → knowledge → reasoning.
         mem = _format_memory(context)
-        return (
-            f"{THEO_CONTEXT}\n\n{TONE_GUIDE}\n\n"
+        thread = _format_thread(context)
+        tiers = [
+            # Tier 1 — safety (also enforced structurally + by constraint_checker)
+            "Hard rules: never fabricate prior conversations or facts. Never use "
+            "'we cannot afford this', 'too expensive', 'guarantee results', "
+            "'I promise', 'we will definitely'. No fake urgency. Keep replies under "
+            "~180 words.",
+            # Tier 2 — app/product persona (per-user at Stage 4)
+            f"{THEO_CONTEXT}\n\n{TONE_GUIDE}\n"
             f"Preferred phrases you may use naturally: {', '.join(PREFERRED_PHRASES)}.\n"
-            "Never use: 'we cannot afford this', 'too expensive', 'guarantee results', "
-            "'I promise', 'we will definitely'. No fake urgency or fabricated prior "
-            "conversations. Keep replies under ~180 words.\n\n"
-            "When declining a rate, frame it as a current pilot budget limitation and keep "
-            "future collaboration open. For payment questions, reference the team review / "
-            "approval process. For product-access issues, ask for a screenshot or point to "
-            "the web dashboard.\n\n"
-            f"Relevant memory:\n{mem}\n\n"
-            "Write only the reply body (greeting to sign-off as Theo). Do not add commentary."
+            "When declining a rate, frame it as a current pilot budget limitation and "
+            "keep future collaboration open. For payment questions, reference the team "
+            "review / approval process. For product-access issues, ask for a screenshot "
+            "or point to the web dashboard.",
+        ]
+        # Tier 3 — the user's standing rules (highest user-authored precedence)
+        rules_block = user_rules_block(context.agent_rules)
+        if rules_block:
+            tiers.append(rules_block)
+        # Tier 4 — knowledge (reference) + thread context
+        tiers.append(
+            "Prior messages in this thread (oldest first — do not repeat questions "
+            f"already answered here, stay consistent with what was said):\n{thread}"
         )
+        tiers.append(f"What you know about this user and how they work:\n{mem}")
+        tiers.append(
+            "Write only the reply body (greeting to sign-off as the user). Do not add "
+            "commentary."
+        )
+        return "\n\n".join(tiers)
 
     def _llm_draft(self, email, triage, context):
         user = (
-            f"Email from {email.sender_name} <{email.sender_email}>\n"
-            f"Subject: {email.subject}\n"
-            f"Preview: {email.body_preview}\n\n"
-            f"Triage: {triage.category.value}, {triage.priority.value}. {triage.summary}\n"
-            "Draft Theo's reply."
+            f"Triage: {triage.category.value}, {triage.priority.value}. {triage.summary}\n\n"
+            + as_data(
+                "EMAIL TO REPLY TO",
+                f"From: {email.sender_name} <{email.sender_email}>\n"
+                f"Subject: {email.subject}\n\n{email.body_preview}",
+            )
+            + "\n\nDraft the user's reply."
         )
         chain = SYS_USER_PROMPT | self.llm.text()
         body = _run_text(chain, self._system(context), user) or _mock_draft(email, triage)[1]
@@ -110,9 +132,12 @@ class DraftGenerator:
         if constraint and constraint.rewrite_instructions:
             fixes.append(constraint.rewrite_instructions)
         user = (
-            f"Original email subject: {email.subject}\nPreview: {email.body_preview}\n\n"
-            f"Your previous draft:\n{previous.draft_body}\n\n"
-            f"Fix these issues, keep Theo's voice, stay under 180 words:\n- "
+            as_data(
+                "EMAIL TO REPLY TO",
+                f"Subject: {email.subject}\n\n{email.body_preview}",
+            )
+            + f"\n\nYour previous draft:\n{previous.draft_body}\n\n"
+            "Fix these issues, keep the user's voice, stay under 180 words:\n- "
             + "\n- ".join(fixes or ["Improve clarity and tone."])
             + "\n\nReturn only the improved reply body."
         )
@@ -126,6 +151,10 @@ def _run_text(chain, system: str, user: str) -> str:
         return chain.invoke({"system": system, "user": user})
     except Exception:  # defensive: let the caller fall back to a template
         return ""
+
+
+def _format_thread(context: RetrievedContext) -> str:
+    return "\n".join(context.thread_history) if context.thread_history else "(no prior messages)"
 
 
 def _format_memory(context: RetrievedContext) -> str:

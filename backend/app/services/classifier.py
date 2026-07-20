@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field
 
 from ..models import Category, Email, Priority, TriageResult
 from ._chains import SYS_USER_PROMPT
+from ._prompt_layers import as_data
 from ._theo import THEO_CONTEXT
 from .llm_client import LLMClient, get_llm_client
 
@@ -60,10 +61,10 @@ class Classifier:
         if self.llm.mock:
             return TriageResult(email_id=email.id, **_mock_classify(email))
 
-        user = (
+        user = as_data(
+            "EMAIL TO CLASSIFY",
             f"From: {email.sender_name} <{email.sender_email}>\n"
-            f"Subject: {email.subject}\n"
-            f"Preview: {email.body_preview}"
+            f"Subject: {email.subject}\n\n{email.body_preview}",
         )
         chain = SYS_USER_PROMPT | self.llm.structured(_ClassifyOut)
         try:

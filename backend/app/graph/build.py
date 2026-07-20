@@ -30,6 +30,9 @@ class EmailGraphDeps:
     generator: object
     critic: object
     scorer: object
+    # False = direct-generate (one LLM call, deterministic constraint check
+    # only). True = full critique → score → rewrite quality loop.
+    quality_loop: bool = False
 
 
 def build_email_graph(deps: EmailGraphDeps):

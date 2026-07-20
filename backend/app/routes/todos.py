@@ -9,12 +9,14 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+
+from ..context import user_scope
 from pydantic import BaseModel
 
 from ..repositories import get_store
 
-router = APIRouter(prefix="/api/todos", tags=["todos"])
+router = APIRouter(prefix="/api/todos", tags=["todos"], dependencies=[Depends(user_scope)])
 
 
 class TodoView(BaseModel):

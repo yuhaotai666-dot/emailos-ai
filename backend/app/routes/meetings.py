@@ -10,7 +10,9 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timedelta
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+
+from ..context import user_scope
 
 from ..config import get_settings
 from ..models import Meeting
@@ -18,7 +20,7 @@ from ..repositories import get_store
 
 logger = logging.getLogger("emailos.meetings")
 
-router = APIRouter(prefix="/api/meetings", tags=["meetings"])
+router = APIRouter(prefix="/api/meetings", tags=["meetings"], dependencies=[Depends(user_scope)])
 
 _REFRESH_EVERY = timedelta(minutes=10)
 _last_refresh: datetime | None = None

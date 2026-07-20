@@ -20,7 +20,9 @@ from .routes import (
     contacts,
     drafts,
     emails,
+    events,
     health,
+    knowledge,
     meetings,
     memory,
     people,
@@ -65,12 +67,14 @@ app.include_router(drafts.router)
 app.include_router(emails.router)
 app.include_router(contacts.router)
 app.include_router(memory.router)
+app.include_router(knowledge.router)
 app.include_router(people.router)
 app.include_router(profile.router)
 app.include_router(meetings.router)
 app.include_router(todos.router)
 app.include_router(chat.router)
 app.include_router(routines.router)
+app.include_router(events.router)
 
 
 @app.on_event("startup")

@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+
+from ..context import user_scope
 from pydantic import BaseModel
 
 from ..models import Draft, DraftStatus, LearnFromEditRequest, LearnFromEditResult
@@ -10,7 +12,7 @@ from ..repositories import get_store
 from ..services.memory_service import MemoryService
 from ..services.workflow_engine import get_engine
 
-router = APIRouter(prefix="/api/drafts", tags=["drafts"])
+router = APIRouter(prefix="/api/drafts", tags=["drafts"], dependencies=[Depends(user_scope)])
 
 
 class RegenerateRequest(BaseModel):

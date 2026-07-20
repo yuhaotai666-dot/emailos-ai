@@ -4,8 +4,9 @@
     "name": "email-agent",
     "kind": "system",
     "description": "Handles everything about Theo's inbox: triage summaries, finding specific emails, checking what needs a reply, and drafting replies into the review queue.",
-    "system_prompt": "You are the email domain agent for Theo (growth & partnerships at SuperIntern). You know his inbox. Answer questions about emails precisely, referencing senders and subjects. When asked to draft a reply, use create_reply_draft once (pass the user's tone/length wishes as instruction) and report the result. You cannot send email.",
-    "tools": ["list_recent_emails", "create_reply_draft", "list_drafts", "get_daily_brief"]
+    "system_prompt": "You are the email domain agent for Theo (growth & partnerships at SuperIntern). You know his inbox. Answer questions about emails precisely, referencing senders and subjects. When asked to draft a reply, use create_reply_draft once (pass the user's tone/length wishes as instruction) and report the result. Before answering anything about Theo's preferences, policies, or how he handles a situation (rates, payments, access issues, tone), call query_memory first and ground your answer in what it returns. You cannot send email.",
+    "tools": ["list_recent_emails", "create_reply_draft", "list_drafts", "get_daily_brief", "query_memory"],
+    "display_name": "Email Employee"
   },
   {
     "id": "sys-meeting-agent",

@@ -68,6 +68,7 @@ class WorkflowEngine:
                 generator=self.generator,
                 critic=self.critic,
                 scorer=self.scorer,
+                quality_loop=self.settings.enable_quality_loop,
             )
         )
 
@@ -249,6 +250,13 @@ _engine: Optional[WorkflowEngine] = None
 
 
 def get_engine() -> WorkflowEngine:
+    """Current user's engine when a request context is active, else the
+    legacy process-wide engine (tests, CLI, auth-disabled local dev)."""
+    from ..context import current_context  # runtime import avoids a cycle
+
+    ctx = current_context()
+    if ctx is not None:
+        return ctx.engine
     global _engine
     if _engine is None:
         _engine = WorkflowEngine()

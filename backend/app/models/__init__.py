@@ -8,6 +8,7 @@ from .agent_run import (
 )
 from .draft import ConstraintCheck, Draft
 from .email import Email
+from .event import EmailEventLink, EventTag
 from .meeting import Meeting, MeetingFollowUp, MeetingTodo
 from .profile import UserProfile
 from .routine import Nudge, Routine
@@ -36,7 +37,9 @@ __all__ = [
     "Draft",
     "DraftStatus",
     "Email",
+    "EmailEventLink",
     "ErrorCase",
+    "EventTag",
     "Evaluation",
     "FollowUp",
     "LearnFromEditRequest",

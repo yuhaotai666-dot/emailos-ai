@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+
+from ..context import user_scope
 
 from ..models import (
     ErrorCase,
@@ -12,7 +14,7 @@ from ..models import (
 )
 from ..services.memory_service import MemoryService
 
-router = APIRouter(prefix="/api/memory", tags=["memory"])
+router = APIRouter(prefix="/api/memory", tags=["memory"], dependencies=[Depends(user_scope)])
 
 
 def _svc() -> MemoryService:

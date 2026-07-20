@@ -37,6 +37,13 @@ class SubAgent(BaseModel):
     created_at: datetime = Field(default_factory=_now)
     runs: int = 0
     last_used_at: Optional[datetime] = None
+    # Human-facing name for the Powers/"My Skills" UI, e.g. "Email Employee".
+    # System agents without one stay listed under "Ivy's core team" instead.
+    display_name: Optional[str] = None
+    # Whether the underlying integration is actually linked. Only meaningful
+    # for system agents with a display_name; recomputed per-request by the
+    # route, never trusted from what's persisted on disk.
+    connected: bool = True
 
 
 class ChatRequest(BaseModel):

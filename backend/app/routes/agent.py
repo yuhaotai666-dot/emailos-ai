@@ -1,11 +1,13 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+
+from ..context import user_scope
 
 from ..models import DailyBrief, TriageRunResponse
 from ..services.workflow_engine import get_engine
 
-router = APIRouter(prefix="/api/agent", tags=["agent"])
+router = APIRouter(prefix="/api/agent", tags=["agent"], dependencies=[Depends(user_scope)])
 
 
 @router.post("/run-triage", response_model=TriageRunResponse)

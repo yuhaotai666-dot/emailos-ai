@@ -35,6 +35,12 @@ class Settings(BaseSettings):
     email_provider: str = "mock"  # "mock" | "gmail"
     database_provider: str = "local"
 
+    # Multi-user auth (Supabase JWT). Disabled = single-user local dev: every
+    # request maps to the legacy store, no token required.
+    auth_enabled: bool = False
+    supabase_url: str = ""
+    supabase_jwt_secret: str = ""  # legacy HS256 secret; empty = use JWKS
+
     # Gmail (read-only). Files live under backend/secrets/ (gitignored).
     gmail_credentials_path: str = str(BACKEND_DIR / "secrets" / "gmail_credentials.json")
     gmail_token_path: str = str(BACKEND_DIR / "secrets" / "gmail_token.json")
@@ -48,6 +54,11 @@ class Settings(BaseSettings):
     # Agent loop
     max_draft_retries: int = 2
     min_draft_score: int = 8
+    # When False (default), a draft is generated in ONE LLM call — no LLM
+    # critique, scoring, or rewrite (the expensive part of the loop). The
+    # deterministic constraint check still runs (free) to flag violations.
+    # Set True to re-enable the full critique→score→rewrite quality loop.
+    enable_quality_loop: bool = False
     # Emails processed concurrently per triage run (LLM calls dominate latency).
     triage_concurrency: int = 8
 

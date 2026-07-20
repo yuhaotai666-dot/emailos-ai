@@ -10,13 +10,15 @@ from __future__ import annotations
 from collections import Counter, defaultdict
 from datetime import datetime
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+
+from ..context import user_scope
 from pydantic import BaseModel
 
 from ..models import Email
 from ..repositories import get_store
 
-router = APIRouter(prefix="/api/contacts", tags=["contacts"])
+router = APIRouter(prefix="/api/contacts", tags=["contacts"], dependencies=[Depends(user_scope)])
 
 _TLDS = {"com", "io", "co", "dev", "org", "net", "ai", "app", "example"}
 

@@ -42,15 +42,23 @@ class EmailNodes:
         draft = self.deps.generator.generate(state["email"], state["triage"], state["context"])
         return {"draft": draft, "attempt": 0}
 
-    # -- critique + constraints + score --------------------------------
+    # -- constraints (+ optional LLM critique + score) -----------------
     def evaluate(self, state: EmailState) -> dict:
         email, triage, draft = state["email"], state["triage"], state["draft"]
-        critique = self.deps.critic.critique(email, triage, draft)
+        # The deterministic constraint check is always run (free, and it's the
+        # safety flag). The LLM critique + score only run when the quality loop
+        # is enabled — that's the expensive part.
         constraint = constraint_checker.check(
             draft.draft_body, draft.subject_suggestion or "", email, triage
         )
-        evaluation = self.deps.scorer.score(email, triage, draft, constraint)
-        _attach(draft, critique, evaluation, constraint)
+        critique = evaluation = None
+        if self.deps.quality_loop:
+            critique = self.deps.critic.critique(email, triage, draft)
+            evaluation = self.deps.scorer.score(email, triage, draft, constraint)
+            _attach(draft, critique, evaluation, constraint)
+        else:
+            draft.constraint_detail = constraint
+            draft.constraints_passed = constraint.passed
         best = _better(state.get("best"), draft)
         return {
             "critique": critique,
@@ -61,10 +69,13 @@ class EmailNodes:
         }
 
     def route_after_evaluate(self, state: EmailState) -> str:
-        """Loop back to rewrite until good enough or retries are exhausted."""
-        evaluation = state["evaluation"]
+        """Direct-generate finalizes immediately; the quality loop rewrites
+        until good enough or retries are exhausted."""
+        if not self.deps.quality_loop:
+            return "finalize"
+        evaluation = state.get("evaluation")
         attempt = state.get("attempt", 0)
-        if evaluation.should_rewrite and attempt < state.get("max_retries", 0):
+        if evaluation and evaluation.should_rewrite and attempt < state.get("max_retries", 0):
             return "rewrite"
         return "finalize"
 

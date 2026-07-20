@@ -27,6 +27,7 @@ from langchain_core.tools import tool
 
 from ..models import ChatEvent, ChatResponse, SubAgent
 from ..repositories import LocalStore, get_store
+from ._prompt_layers import user_rules_block
 from .agent_tools import TOOLBOX, tools_by_names, toolbox_catalog
 from .llm_client import LLMClient, get_llm_client
 
@@ -177,10 +178,18 @@ class IvySupervisor:
 
     # ---------------------------------------------------------------- system
     def _system_prompt(self) -> str:
+        profile = self.store.profile.get("profile")
+        rules_block = user_rules_block(profile.agent_rules if profile else "")
+        standing = f"{rules_block}\n\n" if rules_block else ""
         return (
             "You are Ivy, Theo's personal assistant at SuperIntern (growth & partnerships). "
             "You are a planner-supervisor: you rarely do specialised work yourself.\n\n"
-            "How you work:\n"
+            + standing
+            + "How you work:\n"
+            "0. For any question about Theo's preferences, policies, tone, or how he "
+            "handles a recurring situation (rates, payments, product access, negotiation), "
+            "call query_memory FIRST and ground your answer in what it returns — never "
+            "invent a policy.\n"
             "1. For trivial chit-chat or a single quick lookup (weather, today's schedule, "
             "the daily brief), answer DIRECTLY with your own tools — one tool call, then "
             "answer. Do not call list_specialists for these.\n"
@@ -222,12 +231,15 @@ class IvySupervisor:
 
         self._events = []
         # Ivy's own quick-lookup tools: enough to answer common "what's my
-        # day look like" questions in one step without delegation.
+        # day look like" questions in one step without delegation. query_memory
+        # lets her ground answers about Theo's preferences/policies in his
+        # knowledge base instead of guessing.
         own_tools = [
             TOOLBOX["get_weather"],
             TOOLBOX["web_search"],
             TOOLBOX["get_daily_brief"],
             TOOLBOX["list_meetings"],
+            TOOLBOX["query_memory"],
         ]
         ivy = create_react_agent(
             self.llm.model,
@@ -290,6 +302,13 @@ _supervisor: Optional[IvySupervisor] = None
 
 
 def get_supervisor() -> IvySupervisor:
+    """Current user's supervisor when a request context is active, else the
+    legacy process-wide one (tests, CLI, auth-disabled local dev)."""
+    from ..context import current_context  # runtime import avoids a cycle
+
+    ctx = current_context()
+    if ctx is not None:
+        return ctx.supervisor
     global _supervisor
     if _supervisor is None:
         _supervisor = IvySupervisor()

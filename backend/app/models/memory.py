@@ -19,6 +19,9 @@ class MemoryRule(BaseModel):
     example_bad: str = ""
     created_from: str = "manual"
     confidence: float = Field(default=0.7, ge=0.0, le=1.0)
+    # Precedence when rules conflict / when the corpus is capped: higher wins,
+    # leads the injected list, and survives truncation. 0 = normal.
+    priority: int = 0
     # Optional grouping for the memory-profile view (e.g. "Payment rules").
     # Empty = inferred from the situation text by keyword.
     section: str = ""

@@ -19,6 +19,8 @@ backend/app/data/drafts.json
 backend/app/data/briefs.json
 backend/app/data/agent_runs.json
 backend/app/data/triage.json
+backend/app/data/events.json
+backend/app/data/email_events.json
 
 # OS / editor
 .DS_Store

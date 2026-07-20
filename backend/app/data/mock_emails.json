@@ -98,5 +98,15 @@
     "body_preview": "Your weekly digest of the top crypto and Web3 stories. Read the highlights below. Unsubscribe anytime.",
     "received_at": "2026-07-01T06:00:00+00:00",
     "source": "mock"
+  },
+  {
+    "id": "em-012",
+    "thread_id": "th-001",
+    "sender_name": "Maya Chen",
+    "sender_email": "maya@creators.example",
+    "subject": "Re: Payment for last video?",
+    "body_preview": "Hi Theo, just following up again — it's been a few days since your last note and I still haven't seen the payment come through.",
+    "received_at": "2026-07-05T08:30:00+00:00",
+    "source": "mock"
   }
 ]

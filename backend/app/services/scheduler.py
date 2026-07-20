@@ -96,11 +96,28 @@ def run_due_routines(store: LocalStore | None = None, now: datetime | None = Non
     return produced
 
 
+def run_due_routines_all_users(now: datetime | None = None) -> None:
+    """One scheduler tick across every known user.
+
+    Setting the user context around each user's pass makes ``get_store()`` /
+    ``get_engine()`` / ``get_supervisor()`` inside ``run_routine`` resolve to
+    that user's isolated state — same mechanism as an authenticated request.
+    """
+    from ..context import iter_user_ids, run_as
+
+    for user_id in iter_user_ids():
+        try:
+            with run_as(user_id) as ctx:
+                run_due_routines(ctx.store, now)
+        except Exception:  # one user's failure must not block the others
+            logger.exception("scheduler pass failed for user %s", user_id)
+
+
 async def scheduler_loop() -> None:
-    """Background task: check for due routines once a minute."""
+    """Background task: check every user's due routines once a minute."""
     while True:
         try:
-            await asyncio.to_thread(run_due_routines)
+            await asyncio.to_thread(run_due_routines_all_users)
         except Exception:  # pragma: no cover - defensive
             logger.exception("scheduler tick failed")
         await asyncio.sleep(TICK_SECONDS)

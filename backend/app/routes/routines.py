@@ -3,14 +3,16 @@ from __future__ import annotations
 
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+
+from ..context import user_scope
 from pydantic import BaseModel
 
 from ..models import Nudge, Routine
 from ..repositories import get_store
 from ..services.scheduler import run_routine
 
-router = APIRouter(prefix="/api", tags=["routines"])
+router = APIRouter(prefix="/api", tags=["routines"], dependencies=[Depends(user_scope)])
 
 
 class RoutinePatch(BaseModel):

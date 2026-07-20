@@ -30,24 +30,47 @@ from pydantic import BaseModel
 
 from ..config import Settings, get_settings
 
-# Rough $/1M token rates for the cost estimate only (not billing-accurate).
-# Sonnet-class defaults; OpenAI pricing differs, so treat the number as a ballpark.
-_RATE_IN = 3.0 / 1_000_000
-_RATE_OUT = 15.0 / 1_000_000
+# Approximate $/1M-token (input, output) rates for the cost estimate only —
+# not billing-accurate. Keyed by a substring of the model id, matched
+# most-specific first. Update as prices change.
+_PRICES: list[tuple[str, float, float]] = [
+    ("gpt-4o-mini", 0.15, 0.60),
+    ("gpt-4.1-mini", 0.40, 1.60),
+    ("gpt-4.1", 2.00, 8.00),
+    ("gpt-4o", 2.50, 10.00),
+    ("claude-3-5-haiku", 0.80, 4.00),
+    ("haiku", 1.00, 5.00),
+    ("claude-3-opus", 15.00, 75.00),
+    ("opus", 15.00, 75.00),
+    ("sonnet", 3.00, 15.00),
+]
+# Fallback when the model id matches nothing above (Sonnet-class ballpark).
+_DEFAULT_RATE = (3.0, 15.0)
+
+
+def _rates_for(model: str) -> tuple[float, float]:
+    """(input, output) $/token for a model id — matched by substring."""
+    low = (model or "").lower()
+    for key, rin, rout in _PRICES:
+        if key in low:
+            return rin / 1_000_000, rout / 1_000_000
+    return _DEFAULT_RATE[0] / 1_000_000, _DEFAULT_RATE[1] / 1_000_000
 
 
 class _CostHandler(BaseCallbackHandler):
-    """Accumulates a rough dollar cost from token usage on each LLM response."""
+    """Accumulates a rough dollar cost from token usage, priced for the
+    actually-configured model (not a hardcoded Sonnet rate)."""
 
-    def __init__(self) -> None:
+    def __init__(self, model: str = "") -> None:
         self.cost = 0.0
+        self._rate_in, self._rate_out = _rates_for(model)
 
     def reset(self) -> None:
         self.cost = 0.0
 
     def on_llm_end(self, response: LLMResult, *, run_id: UUID | None = None, **kwargs: Any) -> None:
         in_tok, out_tok = _usage_from_result(response)
-        self.cost += in_tok * _RATE_IN + out_tok * _RATE_OUT
+        self.cost += in_tok * self._rate_in + out_tok * self._rate_out
 
 
 def _usage_from_result(response: LLMResult) -> tuple[int, int]:
@@ -69,7 +92,7 @@ class LLMClient:
     def __init__(self, settings: Optional[Settings] = None):
         self.settings = settings or get_settings()
         self.mock = self.settings.use_mock_llm
-        self._cost_handler = _CostHandler()
+        self._cost_handler = _CostHandler(self.settings.llm_model)
         self.model = None
         if not self.mock:
             self.model = self._make_model()

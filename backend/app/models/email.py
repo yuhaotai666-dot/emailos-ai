@@ -37,4 +37,8 @@ class Email(BaseModel):
     needs_reply: Optional[bool] = None
 
     source: str = "mock"
+    # True when the user themselves sent this message (Gmail SENT label). More
+    # reliable than matching sender address, since the connected Gmail account
+    # may send from an address that differs from the login/profile email.
+    from_me: bool = False
     metadata: dict[str, Any] = Field(default_factory=dict)

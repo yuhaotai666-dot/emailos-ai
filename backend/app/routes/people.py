@@ -12,13 +12,15 @@ from collections import Counter, defaultdict
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+
+from ..context import user_scope
 from pydantic import BaseModel, Field
 
 from ..models import Category, Draft, Email, TriageResult
 from ..repositories import get_store
 
-router = APIRouter(prefix="/api/people", tags=["people"])
+router = APIRouter(prefix="/api/people", tags=["people"], dependencies=[Depends(user_scope)])
 
 _TLDS = {"com", "io", "co", "dev", "org", "net", "ai", "app", "tv", "example"}
 
