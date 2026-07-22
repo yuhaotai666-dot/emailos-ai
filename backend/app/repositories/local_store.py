@@ -30,6 +30,7 @@ from ..models import (
     UserProfile,
 )
 from .base import Collection, T
+from .seeding import apply_seeds
 
 _LOCK = threading.RLock()
 
@@ -120,33 +121,15 @@ class LocalStore:
         self.seed_dir = seed_dir or data_dir
         data_dir.mkdir(parents=True, exist_ok=True)
 
-        # Working email set (runtime, gitignored). Seeded from the committed
-        # mock_emails.json on first use; the Gmail provider replaces it with
-        # real messages — the seed file itself is never written to.
+        # One JSON file per collection. Emails/meetings are the working sets the
+        # Gmail/Calendar providers overwrite; the rest are runtime collections.
         self.emails = JsonCollection(data_dir / "emails.json", Email)
-        if not self.emails.list():
-            seed_path = self.seed_dir / "mock_emails.json"
-            if seed_path.exists():
-                seeds = JsonCollection(seed_path, Email).list()
-                if seeds:
-                    self.emails.replace_all(seeds)
         self.memory_rules = JsonCollection(data_dir / "memory_rules.json", MemoryRule)
         self.error_cases = JsonCollection(data_dir / "error_library.json", ErrorCase)
         self.success_patterns = JsonCollection(
             data_dir / "success_patterns.json", SuccessPattern
         )
-        # Working meeting set (runtime, gitignored) — seeded from the committed
-        # mock file; the Google Calendar provider replaces it with real events
-        # and never writes to the seed.
         self.meetings = JsonCollection(data_dir / "meetings.json", Meeting)
-        if not self.meetings.list():
-            meeting_seed = self.seed_dir / "mock_meetings.json"
-            if meeting_seed.exists():
-                seeds = JsonCollection(meeting_seed, Meeting).list()
-                if seeds:
-                    self.meetings.replace_all(seeds)
-
-        # Runtime collections (created on demand, gitignored).
         self.drafts = JsonCollection(data_dir / "drafts.json", Draft)
         self.briefs = JsonCollection(data_dir / "briefs.json", DailyBrief)
         self.agent_runs = JsonCollection(data_dir / "agent_runs.json", AgentRun)
@@ -155,53 +138,17 @@ class LocalStore:
         )
         self.profile = JsonCollection(data_dir / "profile.json", UserProfile)
         self.sub_agents = JsonCollection(data_dir / "sub_agents.json", SubAgent)
-
         # Manual event tags + their email assignments (user-managed, no LLM).
         self.events = JsonCollection(data_dir / "events.json", EventTag)
         self.email_events = JsonCollection(
             data_dir / "email_events.json", EmailEventLink, id_field="email_id"
         )
-
-        # Proactive engine collections (runtime, gitignored).
+        # Proactive engine collections.
         self.routines = JsonCollection(data_dir / "routines.json", Routine)
         self.nudges = JsonCollection(data_dir / "nudges.json", Nudge)
-        if not self.routines.list():
-            self.routines.add(
-                Routine(
-                    id="routine-morning-briefing",
-                    title="Morning Briefing",
-                    prompt="Triage the inbox and prepare today's brief and to-dos.",
-                    schedule="daily",
-                    time="08:30",
-                    kind="triage_brief",
-                    created_from="seed",
-                )
-            )
 
-        # Built-in domain agents (email/meeting/reminder): never duplicated,
-        # but their *definition* (description/prompt/tools/display_name) is
-        # re-synced from the seed file on every load so code-side updates
-        # (e.g. adding a display_name) reach installs with pre-existing data.
-        # Usage stats (runs/last_used_at) and id/created_at are preserved.
-        # Custom agents created by Ivy live alongside these, untouched.
-        system_path = self.seed_dir / "system_agents.json"
-        if system_path.exists():
-            by_name = {a.name: a for a in self.sub_agents.list()}
-            for agent in JsonCollection(system_path, SubAgent).list():
-                current = by_name.get(agent.name)
-                if current is None:
-                    self.sub_agents.add(agent)
-                else:
-                    synced = current.model_copy(
-                        update={
-                            "description": agent.description,
-                            "system_prompt": agent.system_prompt,
-                            "tools": agent.tools,
-                            "display_name": agent.display_name,
-                        }
-                    )
-                    if synced != current:
-                        self.sub_agents.update(synced)
+        # Seed empty collections + re-sync the built-in domain agents.
+        apply_seeds(self, self.seed_dir)
 
 
 _store: Optional[LocalStore] = None

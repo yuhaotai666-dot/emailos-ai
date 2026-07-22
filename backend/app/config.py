@@ -38,8 +38,12 @@ class Settings(BaseSettings):
     # Multi-user auth (Supabase JWT). Disabled = single-user local dev: every
     # request maps to the legacy store, no token required.
     auth_enabled: bool = False
-    supabase_url: str = ""
+    supabase_url: str = ""  # Lovable's Supabase — issues + validates the JWTs
     supabase_jwt_secret: str = ""  # legacy HS256 secret; empty = use JWKS
+    # Backend data store (Theo-owned Supabase project, separate from auth).
+    # Used when database_provider == "supabase".
+    supabase_db_url: str = ""
+    supabase_service_role_key: str = ""
 
     # Gmail (read-only). Files live under backend/secrets/ (gitignored).
     gmail_credentials_path: str = str(BACKEND_DIR / "secrets" / "gmail_credentials.json")

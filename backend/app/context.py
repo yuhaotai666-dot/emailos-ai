@@ -64,7 +64,13 @@ def context_for(user_id: str) -> UserContext:
     """Get (or build) the cached context for a user."""
     ctx = _contexts.get(user_id)
     if ctx is None:
-        if user_id == LOCAL_USER_ID:
+        from .config import get_settings
+
+        if get_settings().database_provider == "supabase":
+            from .repositories.supabase_store import SupabaseStore
+
+            store = SupabaseStore(user_id)
+        elif user_id == LOCAL_USER_ID:
             # Legacy single-user store (backend/app/data) — Theo's local dev.
             from .repositories.local_store import _legacy_store
 
