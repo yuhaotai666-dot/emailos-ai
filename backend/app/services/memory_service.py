@@ -61,6 +61,33 @@ class _LearnOut(BaseModel):
     better_phrase: str = ""
 
 
+class _FeedbackOut(BaseModel):
+    """Was the user's revise feedback a one-off tweak or a standing rule?"""
+
+    is_standing_preference: bool
+    situation: str = ""  # what kind of email this applies to
+    preference: str = ""  # the standing guidance to remember
+    ack: str = ""  # one-line note of what changed
+
+
+def _mock_feedback(message: str, situation_hint: str) -> tuple[Optional["MemoryRule"], str]:
+    low = message.lower()
+    standing = any(
+        w in low
+        for w in ("always", "from now on", "in future", "all ", "every", "这类", "以后", "都")
+    )
+    ack = "Updated the draft with your feedback."
+    if standing:
+        rule = MemoryRule(
+            situation=situation_hint or "emails like this",
+            preference=message.strip(),
+            created_from="revise_feedback",
+            confidence=0.5,
+        )
+        return rule, ack
+    return None, ack
+
+
 class MemoryService:
     def __init__(self, store: Optional[LocalStore] = None, llm: Optional[LLMClient] = None):
         self.store = store or get_store()
@@ -156,6 +183,39 @@ class MemoryService:
                 self.add_success(result.possible_success_pattern)
             result.saved = True
         return result
+
+    def analyze_feedback(
+        self, message: str, situation_hint: str = ""
+    ) -> tuple[Optional[MemoryRule], str]:
+        """Given revise feedback, return (suggested standing rule | None, ack).
+
+        A rule is only *suggested* — the caller confirms with the user before
+        saving (never silently mutate the knowledge base)."""
+        if self.llm.mock:
+            return _mock_feedback(message, situation_hint)
+        system = (
+            "The user gave feedback on an AI-drafted email reply. Decide whether it "
+            "is a ONE-OFF tweak to just this draft, or a STANDING preference to apply "
+            "to all similar emails in future. If standing, extract `situation` (what "
+            "kind of email it applies to) and `preference` (the guidance to remember). "
+            "Give a one-line `ack` of what you changed. Return JSON."
+        )
+        user = f"Email context: {situation_hint}\n\nUser feedback: {message}"
+        chain = SYS_USER_PROMPT | self.llm.structured(_FeedbackOut)
+        try:
+            out: _FeedbackOut = chain.invoke({"system": system, "user": user})
+        except Exception:
+            return None, "Updated the draft with your feedback."
+        ack = out.ack or "Updated the draft with your feedback."
+        if out.is_standing_preference and out.preference:
+            rule = MemoryRule(
+                situation=out.situation or situation_hint or "email reply",
+                preference=out.preference,
+                created_from="revise_feedback",
+                confidence=0.6,
+            )
+            return rule, ack
+        return None, ack
 
     def _llm_learn(self, req: LearnFromEditRequest) -> Optional[LearnFromEditResult]:
         system = (

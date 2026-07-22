@@ -116,6 +116,112 @@ def list_meetings() -> str:
 
 
 @tool
+def search_email(query: str, max_results: int = 8) -> str:
+    """Search the user's WHOLE email history (not just recent inbox) for messages
+    matching a query — use this to answer questions about what was said or agreed
+    in past emails (e.g. a price negotiated weeks ago).
+
+    Use Gmail search syntax: sender (``from:maya``), keywords (``rate price``),
+    dates (``after:2026/03/01``). Combine them, e.g. ``from:maya rate OR price``.
+    Follow up with ``read_thread`` to see the full back-and-forth. Only state a
+    figure/date you actually find here — never guess.
+
+    Args:
+        query: Gmail search query.
+        max_results: max messages to return (default 8).
+    """
+    from ..config import get_settings
+
+    settings = get_settings()
+    store = get_store()
+    if settings.email_provider == "gmail":
+        try:
+            from .gmail_provider import GmailProvider
+
+            emails = GmailProvider(store, settings).search(query, max_results)
+        except Exception as exc:
+            return f"Search failed: {type(exc).__name__}"
+    else:
+        emails = _local_search(store, query, max_results)
+    if not emails:
+        return f"No emails found for '{query}'."
+    out = []
+    for e in emails:
+        out.append(
+            f"- [{e.id}] [thread:{e.thread_id}] {e.sender_name} <{e.sender_email}> "
+            f"— {e.subject} ({e.received_at:%b %d, %Y})\n  {e.body_preview[:500]}"
+        )
+    return "\n".join(out)
+
+
+@tool
+def read_thread(thread_ref: str) -> str:
+    """Read every message in an email thread, oldest first — the full
+    back-and-forth. Use after ``search_email`` to see what was FINALLY agreed
+    (not just an intermediate offer).
+
+    Args:
+        thread_ref: a thread id (``thread:...`` value from search_email), an
+            email id, or a sender name / subject keyword to fuzzy-match.
+    """
+    from ..config import get_settings
+
+    settings = get_settings()
+    store = get_store()
+    thread_id = _resolve_thread_id(store, thread_ref)
+    if thread_id is None:
+        return f"No thread matches '{thread_ref}'."
+
+    if settings.email_provider == "gmail":
+        try:
+            from .gmail_provider import GmailProvider
+
+            msgs = GmailProvider(store, settings).get_thread(thread_id)
+        except Exception as exc:
+            return f"Read failed: {type(exc).__name__}"
+    else:
+        msgs = sorted(
+            (e for e in store.emails.list() if e.thread_id == thread_id),
+            key=lambda e: e.received_at,
+        )
+    if not msgs:
+        return f"Thread '{thread_ref}' has no messages."
+    profile = store.profile.get("profile")
+    me = (profile.email if profile else "").lower()
+    out = []
+    for e in msgs:
+        who = "You" if (e.from_me or e.sender_email.lower() == me) else e.sender_name
+        out.append(f"{e.received_at:%b %d, %Y} — {who}:\n{e.body_preview}")
+    return "\n\n".join(out)
+
+
+def _local_search(store, query: str, max_results: int):
+    """Offline/mock fallback: keyword-match over the local store."""
+    terms = [t for t in query.lower().replace("from:", " ").split() if t not in ("or", "and")]
+    scored = []
+    for e in store.emails.list():
+        blob = f"{e.sender_name} {e.sender_email} {e.subject} {e.body_preview}".lower()
+        hits = sum(1 for t in terms if t in blob)
+        if hits:
+            scored.append((hits, e))
+    scored.sort(key=lambda x: (x[0], x[1].received_at), reverse=True)
+    return [e for _, e in scored[:max_results]]
+
+
+def _resolve_thread_id(store, ref: str):
+    ref = ref.strip()
+    if ref.startswith("thread:"):
+        return ref.split(":", 1)[1]
+    # a thread id present in the store?
+    for e in store.emails.list():
+        if e.thread_id == ref:
+            return ref
+    # an email id, or fuzzy sender/subject match -> its thread
+    email = _find_email(store, ref)
+    return email.thread_id if email else None
+
+
+@tool
 def query_memory() -> str:
     """What the assistant knows about Theo's preferences, rules, and past lessons."""
     store = get_store()
@@ -228,6 +334,8 @@ TOOLBOX: dict[str, Callable] = {
     "web_search": web_search,
     "get_weather": get_weather,
     "list_recent_emails": list_recent_emails,
+    "search_email": search_email,
+    "read_thread": read_thread,
     "list_drafts": list_drafts,
     "list_meetings": list_meetings,
     "query_memory": query_memory,

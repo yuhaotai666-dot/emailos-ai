@@ -45,7 +45,8 @@ class EmailView(BaseModel):
 
     # Linked draft (present once drafted)
     draft_id: Optional[str] = None
-    draft_preview: Optional[str] = None
+    draft_preview: Optional[str] = None  # truncated, for the card
+    draft_body: Optional[str] = None  # full text, for the reply editor
 
     # True when the shown message postdates the thread's last triage — i.e. a
     # newer reply arrived and this card's analysis/draft (if any) belongs to an
@@ -129,6 +130,7 @@ def list_emails() -> list[EmailView]:
                 confidence=t.confidence if t else None,
                 draft_id=d.id if d else None,
                 draft_preview=_preview(d.draft_body) if d else None,
+                draft_body=d.draft_body if d else None,
                 needs_retriage=needs_retriage,
             )
         )

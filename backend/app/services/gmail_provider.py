@@ -54,6 +54,37 @@ class GmailProvider(EmailProvider):
             self._service = build("gmail", "v1", credentials=creds, cache_discovery=False)
         return self._service
 
+    def search(self, query: str, max_results: int = 8) -> list[Email]:
+        """Search ALL mail (not just the inbox / 7-day window) for a query.
+
+        Pure read — never touches ``store.emails``. Lets the agent answer
+        questions about historical conversations ("what rate did we agree?").
+        ``query`` uses Gmail search syntax (from:, keywords, after:/before:).
+        """
+        svc = self._svc()
+        listing = (
+            svc.users()
+            .messages()
+            .list(userId="me", q=query, maxResults=max_results)
+            .execute()
+        )
+        emails: list[Email] = []
+        for row in listing.get("messages", []):
+            msg = (
+                svc.users().messages().get(userId="me", id=row["id"], format="full").execute()
+            )
+            emails.append(_to_email(msg))
+        emails.sort(key=lambda e: e.received_at, reverse=True)
+        return emails
+
+    def get_thread(self, thread_id: str) -> list[Email]:
+        """Every message in a thread, oldest first. Pure read."""
+        svc = self._svc()
+        thread = svc.users().threads().get(userId="me", id=thread_id, format="full").execute()
+        emails = [_to_email(m) for m in thread.get("messages", [])]
+        emails.sort(key=lambda e: e.received_at)
+        return emails
+
     def fetch_recent(self, limit: int = 50) -> list[Email]:
         svc = self._svc()
         listing = (
@@ -142,6 +173,11 @@ def _to_email(msg: dict) -> Email:
     # the body can't be decoded (e.g. a metadata-only message resource).
     body = _extract_body(msg.get("payload", {})) or _clean_snippet(msg.get("snippet", ""))
 
+    # RFC822 Message-ID enables proper reply threading (In-Reply-To/References).
+    meta = {}
+    if headers.get("message-id"):
+        meta["message_id"] = headers["message-id"]
+
     return Email(
         id=msg["id"],
         thread_id=msg.get("threadId", msg["id"]),
@@ -152,6 +188,7 @@ def _to_email(msg: dict) -> Email:
         received_at=received,
         source="gmail",
         from_me="SENT" in (msg.get("labelIds") or []),
+        metadata=meta,
     )
 
 

@@ -141,18 +141,16 @@ class WorkflowEngine:
 
     # -------------------- single-draft operations (routes) --------------------
     def recompute(self, draft: Draft) -> Draft:
-        """Re-run critique/score/constraints on an existing draft in place."""
+        """Re-run the constraint check (always, free) plus — when the quality
+        loop is enabled — the LLM critique + score, in place."""
         email = self.store.emails.get(draft.email_id)
         triage = self.store.triage.get(draft.email_id)
-        critique = self.critic.critique(email, triage, draft) if (email and triage) else None
         constraint = constraint_checker.check(
             draft.draft_body, draft.subject_suggestion or "", email, triage
         )
-        if email and triage:
+        if self.settings.enable_quality_loop and email and triage:
+            critique = self.critic.critique(email, triage, draft)
             evaluation = self.scorer.score(email, triage, draft, constraint)
-        else:
-            evaluation = draft.evaluation
-        if critique and evaluation:
             _attach(draft, critique, evaluation, constraint)
         else:
             draft.constraint_detail = constraint

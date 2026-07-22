@@ -46,3 +46,6 @@ class Draft(BaseModel):
     evaluation: Optional[Evaluation] = None
     constraints_passed: bool = True
     constraint_detail: Optional[ConstraintCheck] = None
+    # Set once this draft has been synced into the user's Gmail Drafts, so a
+    # re-sync updates that draft instead of creating a duplicate.
+    gmail_draft_id: Optional[str] = None

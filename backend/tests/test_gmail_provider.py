@@ -126,10 +126,14 @@ def test_to_email_handles_missing_fields():
     assert e.subject == "(no subject)"
 
 
-def test_scopes_are_readonly_only():
-    # The whole Google integration (Gmail + Calendar) is read-only by construction.
-    assert SCOPES  # non-empty
-    assert all(s.endswith(".readonly") for s in SCOPES)
+def test_scopes_are_drafts_only_no_send():
+    # Calendar stays read-only; Gmail is limited to compose (drafts) — NOT the
+    # broader gmail.modify, and NOT a send-only scope. The no-send guarantee is
+    # enforced in code (see test_no_send.py), since compose can technically send.
+    assert SCOPES
+    assert "https://www.googleapis.com/auth/calendar.readonly" in SCOPES
+    assert "https://www.googleapis.com/auth/gmail.compose" in SCOPES
+    assert not any(s.endswith("gmail.modify") or s.endswith("gmail.send") for s in SCOPES)
 
 
 def test_clean_snippet_truncates():

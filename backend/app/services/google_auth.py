@@ -1,7 +1,10 @@
-"""Shared Google OAuth for Gmail + Calendar (both READ-ONLY).
+"""Shared Google OAuth for Gmail + Calendar.
 
-One consent, one token file, two APIs. The scopes are strictly read-only:
-the token structurally cannot send mail, nor create/modify calendar events.
+Calendar stays read-only. Gmail uses ``gmail.compose`` so the app can write a
+reply into the user's *Drafts* — it never sends. Sending is prevented at the
+CODE level: there is no ``messages().send`` call anywhere in the codebase (only
+``drafts().create/update``). Adding/removing a scope requires re-running
+``python -m app.gmail_auth`` to re-consent.
 """
 from __future__ import annotations
 
@@ -9,8 +12,10 @@ from pathlib import Path
 
 from ..config import Settings
 
-# Read-only everywhere. Adding a scope requires re-running `python -m app.gmail_auth`.
 SCOPES = [
+    # Create/read/update/delete drafts (write). Also technically permits send at
+    # the OAuth level, but the code never calls send — drafts only.
+    "https://www.googleapis.com/auth/gmail.compose",
     "https://www.googleapis.com/auth/gmail.readonly",
     "https://www.googleapis.com/auth/calendar.readonly",
 ]
