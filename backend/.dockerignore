@@ -1,0 +1,20 @@
+# Never bake secrets, tokens, real data, or local cruft into the image.
+.env
+.env.*
+secrets/
+.venv/
+__pycache__/
+**/__pycache__/
+*.pyc
+.pytest_cache/
+tests/
+.DS_Store
+
+# Runtime data files are per-user and regenerate — keep only the committed seeds.
+app/data/*
+!app/data/mock_emails.json
+!app/data/mock_meetings.json
+!app/data/system_agents.json
+!app/data/memory_rules.json
+!app/data/error_library.json
+!app/data/success_patterns.json

@@ -7,6 +7,7 @@ drafts, critiques, scores, and queues for human review.
 """
 from __future__ import annotations
 
+import os
 import re
 
 from fastapi import FastAPI
@@ -78,8 +79,31 @@ app.include_router(events.router)
 
 
 @app.on_event("startup")
+def _materialize_google_secrets() -> None:
+    """On an ephemeral host there's no local secrets file. If the token /
+    credentials are supplied as base64 env vars, write them to the configured
+    paths so Gmail/Calendar work. (Bridge for Theo's own account until Stage 3
+    stores per-user tokens in Supabase.)"""
+    import base64
+    from pathlib import Path
+
+    for env_key, path_str in (
+        ("GMAIL_TOKEN_B64", settings.gmail_token_path),
+        ("GMAIL_CREDENTIALS_B64", settings.gmail_credentials_path),
+    ):
+        b64 = os.environ.get(env_key)
+        path = Path(path_str)
+        if b64 and not path.exists():
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(base64.b64decode(b64))
+
+
+@app.on_event("startup")
 def _seed() -> None:
-    # Touch the store so seed JSON files are validated/loaded at startup.
+    # In Supabase mode the per-user store is built per request; nothing to
+    # touch here. In local mode, load the legacy store so seed files validate.
+    if settings.database_provider == "supabase":
+        return
     store = get_store()
     _ = store.emails.list()
     _ = store.memory_rules.list()
